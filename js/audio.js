@@ -21,7 +21,11 @@ const AudioSystem = {
         this.ctx = new AC();
       }
       if (this.ctx.state === "suspended") {
-        await this.ctx.resume();
+        // 超时保护：resume 最多等 1 秒，不阻塞后续流程
+        await Promise.race([
+          this.ctx.resume(),
+          new Promise((r) => setTimeout(r, 1000))
+        ]);
       }
       console.log("[audio] ctx state:", this.ctx.state);
     } catch (e) {

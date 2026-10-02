@@ -228,17 +228,21 @@
     powerBtn.disabled = true;
     powerBtn.textContent = "正在开机…";
 
-    await AudioSystem.resume();
-    await AudioSystem.init();
-
+    // UI 先出来
     state.powered = true;
     powerMask.classList.add("hidden");
-
-    // 默认锁定第一个电台
     const first = CHANNELS[0];
     setIndicator(parseFloat(first.freq));
     lockStation(first);
-    AudioSystem.playFirst(0);
+
+    // 音频后台初始化（不阻塞 UI）
+    AudioSystem.resume().then(() => {
+      return AudioSystem.init();
+    }).then(() => {
+      AudioSystem.playFirst(0);
+    }).catch((e) => {
+      console.log("音频初始化失败:", e);
+    });
 
     powerBtn.disabled = false;
     powerBtn.textContent = "▶ 开机";
