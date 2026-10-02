@@ -78,8 +78,10 @@ const AudioSystem = {
 
   // 调频杂音
   setupNoise() {
-    const AC = window.AudioContext || window.webkitAudioContext;
-    this.ctx = new AC();
+    if (!this.ctx) {
+      const AC = window.AudioContext || window.webkitAudioContext;
+      this.ctx = new AC();
+    }
     const bufferSize = this.ctx.sampleRate * 2;
     const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
     const data = buffer.getChannelData(0);

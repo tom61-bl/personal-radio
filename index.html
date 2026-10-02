@@ -3,163 +3,73 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>涓汉璇存槑涔?路 澶氶閬撳儚绱犵數鍙?/title>
-  <meta name="description" content="涓€鍙板棰戦亾鍍忕礌鐢靛彴锛岃皟棰戝埌涓嶅悓棰戠巼锛屽惉瑙佷笉鍚岀殑鎴戙€?>
-
-  <!-- 鍍忕礌瀛椾綋 -->
+  <title>个人说明书 · 外婆的收音机</title>
+  <meta name="description" content="慢慢转动旋钮，寻找藏在夜空里的电台。">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap" rel="stylesheet">
-
-  <!-- Tone.js -->
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&family=ZCOOL+KuaiLe&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/tone@14.8.49/build/Tone.js"></script>
-
-  <link rel="stylesheet" href="css/style.css?v=8">
+  <link rel="stylesheet" href="css/style.css?v=10">
 </head>
 <body>
-
-  <!-- CRT 鎵弿绾块伄缃?-->
   <div class="crt-overlay"></div>
-  <div class="crt-flicker"></div>
-
-  <!-- 鏄熺┖鑳屾櫙 -->
   <div class="starfield" id="starfield"></div>
 
-  <!-- 涓诲鍣?-->
-  <main class="app" id="app">
-
-    <!-- ===== 寮€鏈虹晫闈?===== -->
-    <section class="boot-screen" id="boot-screen">
-      <div class="boot-radio">
-        <div class="boot-antena"></div>
-        <div class="boot-body">
-          <div class="boot-screen-display">
-            <p class="boot-title">PERSONAL RADIO</p>
-            <p class="boot-sub">澶氶閬撳儚绱犵數鍙?/p>
-            <p class="boot-blink">鈻?PRESS START</p>
-          </div>
-          <div class="boot-speaker"></div>
-        </div>
-      </div>
-      <p class="boot-hint">寤鸿鎴翠笂鑰虫満 路 闊抽噺閫備腑</p>
-      <button class="pixel-btn boot-btn" id="power-btn">ON AIR</button>
-    </section>
-
-    <!-- ===== 鐢靛彴涓讳綋 ===== -->
-    <section class="radio-stage" id="radio-stage" style="display:none">
-
-      <!-- 鐢靛彴澶栧３ -->
-      <div class="radio-unit">
-
-        <!-- 澶╃嚎 -->
-        <div class="antena">
-          <div class="antena-line"></div>
-          <div class="antena-tip"></div>
-        </div>
-
-        <!-- 椤堕儴鍝佺墝鏍?-->
-        <div class="radio-topbar">
-          <span class="brand">PERSONAL FM</span>
-          <span class="model">MODEL PX-2026</span>
-        </div>
-
-        <!-- 涓讳綋缃戞牸 -->
-        <div class="radio-main">
-
-          <!-- 宸︿晶锛歀CD 灞忓箷 -->
-          <div class="lcd-panel" id="lcd-panel">
-            <div class="lcd-screen">
-              <div class="lcd-top">
-                <span class="lcd-freq" id="lcd-freq">88.1</span>
-                <span class="lcd-mhz">MHz</span>
-              </div>
-              <div class="lcd-channel" id="lcd-channel">韬唤鍙?/div>
-              <canvas id="wave-canvas" width="280" height="60"></canvas>
-              <div class="lcd-status">
-                <span class="status-dot" id="status-dot"></span>
-                <span id="lcd-status-text">ON AIR</span>
-              </div>
-            </div>
-          </div>
-
-          <!-- 鍙充晶锛氭帶鍒跺尯 -->
-          <div class="controls">
-
-            <!-- 棰戦亾鎸囩ず鐏?-->
-            <div class="led-row" id="led-row">
-              <button class="led-btn active" data-channel="0" title="FM 88.1 韬唤鍙?>
-                <span class="led"></span>
-                <span class="led-label">88.1</span>
-              </button>
-              <button class="led-btn" data-channel="1" title="FM 92.5 鐜板湪杩涜鍙?>
-                <span class="led"></span>
-                <span class="led-label">92.5</span>
-              </button>
-              <button class="led-btn" data-channel="2" title="FM 96.8 鏈潵鍙?>
-                <span class="led"></span>
-                <span class="led-label">96.8</span>
-              </button>
-              <button class="led-btn" data-channel="3" title="FM 101.3 鑱旂粶鍙?>
-                <span class="led"></span>
-                <span class="led-label">101.3</span>
-              </button>
-              <button class="led-btn" data-channel="4" title="FM 105.7 鎴愭灉鍙?>
-                <span class="led"></span>
-                <span class="led-label">105.7</span>
-              </button>
-            </div>
-
-            <!-- 璋冮鏃嬮挳 -->
-            <div class="tuner">
-              <button class="knob-btn knob-prev" id="knob-prev" aria-label="涓婁竴涓閬?>
-                <span class="arrow">鈼€</span>
-              </button>
-              <div class="knob" id="knob">
-                <div class="knob-inner">
-                  <div class="knob-marker"></div>
-                </div>
-              </div>
-              <button class="knob-btn knob-next" id="knob-next" aria-label="涓嬩竴涓閬?>
-                <span class="arrow">鈻?/span>
-              </button>
-            </div>
-
-            <!-- 闊抽噺 -->
-            <div class="volume-control">
-              <span class="vol-icon">鈾?/span>
-              <input type="range" id="volume" class="pixel-slider" min="0" max="100" value="60">
-              <span class="vol-icon">鈾?/span>
-            </div>
-
-            <!-- 鐢垫簮 -->
-            <button class="pixel-btn power-off" id="power-off">OFF</button>
-          </div>
-        </div>
-
-        <!-- 鍠囧彮缃?-->
-        <div class="radio-speaker">
-          <div class="speaker-grid"></div>
-        </div>
-      </div>
-
-      <!-- ===== 鍐呭灞曠ず鍖?===== -->
-      <div class="content-panel" id="content-panel">
-        <div class="content-header">
-          <span class="content-freq" id="content-freq">FM 88.1</span>
-          <span class="content-title" id="content-title">韬唤鍙?路 鎴戞槸璋?/span>
-        </div>
-        <div class="content-body" id="content-body">
-          <!-- 鍐呭鐢?JS 鍔ㄦ€佹覆鏌?-->
-        </div>
-      </div>
-
-    </section>
-
+  <main class="content-area" id="content-area">
+    <div class="content-inner" id="content-inner"></div>
   </main>
 
-  <script src="js/data.js?v=8"></script>
-  <script src="js/audio.js?v=8"></script>
-  <script src="js/pixel.js?v=8"></script>
-  <script src="js/radio.js?v=8"></script>
+  <footer class="radio-bar" id="radio-bar">
+    <div class="power-mask" id="power-mask">
+      <div class="power-box">
+        <p class="power-title">外婆的收音机</p>
+        <p class="power-sub">FM · 多频道像素电台</p>
+        <button class="power-btn" id="power-btn">▶ 开机</button>
+        <p class="power-hint">建议戴上耳机 · 慢慢转动旋钮</p>
+      </div>
+    </div>
+
+    <div class="radio-body">
+      <div class="speaker-grille">
+        <div class="speaker-lines"></div>
+      </div>
+
+      <div class="radio-center">
+        <div class="freq-scale" id="freq-scale">
+          <div class="freq-ticks" id="freq-ticks"></div>
+          <div class="freq-stations" id="freq-stations"></div>
+          <div class="freq-indicator" id="freq-indicator">
+            <div class="indicator-line"></div>
+            <div class="indicator-handle"></div>
+          </div>
+        </div>
+
+        <div class="radio-controls">
+          <button class="ctrl-btn" id="btn-prev" title="上一个电台">◀</button>
+          <div class="knob-round" id="knob-round">
+            <div class="knob-mark"></div>
+          </div>
+          <button class="ctrl-btn" id="btn-next" title="下一个电台">▶</button>
+          <div class="hint-text" id="hint-text">沙沙沙…… 慢慢转动旋钮，寻找藏在夜空里的电台</div>
+        </div>
+      </div>
+
+      <div class="radio-right">
+        <div class="digital-display">
+          <span class="digital-freq" id="digital-freq">88.1</span>
+          <span class="digital-mhz">MHz</span>
+        </div>
+        <div class="signal-bars" id="signal-bars">
+          <span class="bar"></span><span class="bar"></span><span class="bar"></span>
+          <span class="bar"></span><span class="bar"></span>
+        </div>
+        <div class="station-name" id="station-name">身份台</div>
+      </div>
+    </div>
+  </footer>
+
+  <script src="js/data.js?v=10"></script>
+  <script src="js/audio.js?v=10"></script>
+  <script src="js/radio.js?v=10"></script>
 </body>
 </html>

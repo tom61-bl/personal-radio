@@ -1,25 +1,19 @@
 /* ============================================================
-   多频道像素电台 · 样式
+   外婆的收音机 · 底部调频布局
    ============================================================ */
 
 :root {
-  /* 基础色 */
-  --bg: #0f0f1e;
-  --bg-deep: #08080f;
-  --radio-shell: #2d2d44;
-  --radio-shell-light: #3d3d5c;
-  --radio-shell-dark: #1f1f33;
-  --lcd-bg: #0a0a14;
-  --lcd-glow: #7ee787;
-  --text-light: #e8e8f0;
-  --text-dim: #8888aa;
-
-  /* 频道主题色（JS 动态切换） */
-  --ch-color: #4ecdc4;
-  --ch-color-dim: rgba(78, 205, 196, 0.3);
-
-  /* 像素 */
-  --pixel: 4px;
+  --radio-red: #b84a3a;
+  --radio-red-dark: #8a3528;
+  --radio-cream: #f0e6c8;
+  --radio-cream-dark: #d4c8a0;
+  --radio-brown: #3d2b1f;
+  --radio-brown-light: #5c4030;
+  --digital-green: #7ee787;
+  --star-gold: #d4a017;
+  --indicator-red: #c0392b;
+  --text-light: #f0e6c8;
+  --text-dim: #a89880;
 }
 
 * {
@@ -31,41 +25,15 @@
 
 html, body {
   width: 100%;
-  min-height: 100vh;
-  background: var(--bg);
+  height: 100%;
+  background: #1a1520;
   color: var(--text-light);
-  font-family: 'VT323', 'Noto Sans SC', 'Microsoft YaHei', monospace;
+  font-family: 'VT323', 'ZCOOL KuaiLe', 'Noto Sans SC', monospace;
   overflow-x: hidden;
   image-rendering: pixelated;
-  -webkit-font-smoothing: none;
-  -moz-osx-font-smoothing: grayscale;
 }
 
-/* ===== 背景星空 ===== */
-.starfield {
-  position: fixed;
-  inset: 0;
-  z-index: 0;
-  background:
-    radial-gradient(ellipse at 30% 20%, rgba(78, 205, 196, 0.08), transparent 50%),
-    radial-gradient(ellipse at 70% 80%, rgba(167, 139, 250, 0.08), transparent 50%),
-    linear-gradient(180deg, #0f0f1e 0%, #08080f 100%);
-}
-
-.star {
-  position: absolute;
-  width: 2px;
-  height: 2px;
-  background: #fff;
-  animation: twinkle 3s infinite;
-}
-
-@keyframes twinkle {
-  0%, 100% { opacity: 0.2; }
-  50% { opacity: 1; }
-}
-
-/* ===== CRT 效果 ===== */
+/* CRT 扫描线 */
 .crt-overlay {
   position: fixed;
   inset: 0;
@@ -73,617 +41,432 @@ html, body {
   pointer-events: none;
   background: repeating-linear-gradient(
     0deg,
-    rgba(0, 0, 0, 0.15) 0px,
-    rgba(0, 0, 0, 0.15) 1px,
+    rgba(0,0,0,0.12) 0px,
+    rgba(0,0,0,0.12) 1px,
     transparent 1px,
     transparent 3px
   );
 }
 
-.crt-flicker {
+/* 星空 */
+.starfield {
   position: fixed;
   inset: 0;
-  z-index: 998;
-  pointer-events: none;
-  background: radial-gradient(ellipse at center, transparent 60%, rgba(0, 0, 0, 0.4) 100%);
-  animation: flicker 0.15s infinite;
+  z-index: 0;
+  background:
+    radial-gradient(ellipse at 20% 30%, rgba(184,74,58,0.1), transparent 50%),
+    radial-gradient(ellipse at 80% 70%, rgba(212,160,23,0.08), transparent 50%),
+    linear-gradient(180deg, #1a1520 0%, #0d0a10 100%);
 }
-
-@keyframes flicker {
-  0% { opacity: 0.97; }
+.star {
+  position: absolute;
+  width: 2px;
+  height: 2px;
+  background: #fff;
+  animation: twinkle 3s infinite;
+}
+@keyframes twinkle {
+  0%,100% { opacity: 0.2; }
   50% { opacity: 1; }
-  100% { opacity: 0.98; }
 }
 
-/* ===== 主容器 ===== */
-.app {
+/* ===== 主内容区 ===== */
+.content-area {
   position: relative;
   z-index: 1;
-  min-height: 100vh;
+  min-height: calc(100vh - 200px);
+  padding: 40px 24px 220px;
   display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 20px;
-}
-
-/* ===== 开机界面 ===== */
-.boot-screen {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
   justify-content: center;
-  min-height: 90vh;
-  gap: 30px;
 }
 
-.boot-radio {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
-.boot-antena {
-  width: 4px;
-  height: 60px;
-  background: linear-gradient(180deg, var(--radio-shell-light), var(--radio-shell));
-  transform: rotate(-15deg);
-  transform-origin: bottom center;
-  margin-bottom: -4px;
-}
-
-.boot-body {
-  display: flex;
-  gap: 16px;
-  padding: 24px;
-  background: var(--radio-shell);
-  border: 4px solid var(--radio-shell-dark);
-  box-shadow:
-    inset 4px 4px 0 var(--radio-shell-light),
-    inset -4px -4px 0 var(--radio-shell-dark),
-    0 8px 0 rgba(0, 0, 0, 0.5);
-}
-
-.boot-screen-display {
-  width: 280px;
-  padding: 16px;
-  background: var(--lcd-bg);
-  border: 3px solid #000;
-  text-align: center;
-}
-
-.boot-title {
-  font-family: 'Press Start 2P', monospace;
-  font-size: 14px;
-  color: var(--ch-color);
-  margin-bottom: 12px;
-  text-shadow: 0 0 8px var(--ch-color);
-}
-
-.boot-sub {
-  font-size: 22px;
-  color: var(--lcd-glow);
-  margin-bottom: 20px;
-}
-
-.boot-blink {
-  font-family: 'Press Start 2P', monospace;
-  font-size: 10px;
-  color: var(--lcd-glow);
-  animation: blink 1s steps(2) infinite;
-}
-
-@keyframes blink {
-  0%, 50% { opacity: 1; }
-  51%, 100% { opacity: 0; }
-}
-
-.boot-speaker {
-  width: 60px;
-  background:
-    repeating-linear-gradient(0deg, var(--radio-shell-dark) 0 3px, transparent 3px 6px),
-    repeating-linear-gradient(90deg, var(--radio-shell-dark) 0 3px, transparent 3px 6px);
-  background-color: var(--radio-shell-light);
-}
-
-.boot-hint {
+.content-inner {
+  width: 100%;
+  max-width: 720px;
   font-size: 20px;
-  color: var(--text-dim);
+  line-height: 1.7;
+  color: var(--text-light);
 }
 
-/* ===== 像素按钮 ===== */
-.pixel-btn {
-  font-family: 'Press Start 2P', monospace;
-  font-size: 12px;
-  padding: 14px 28px;
-  background: var(--ch-color);
-  color: #0f0f1e;
-  border: 4px solid #000;
-  cursor: pointer;
-  box-shadow:
-    inset 3px 3px 0 rgba(255, 255, 255, 0.4),
-    inset -3px -3px 0 rgba(0, 0, 0, 0.3),
-    0 6px 0 #000;
-  transition: transform 0.05s, box-shadow 0.05s;
-}
-
-.pixel-btn:hover {
-  filter: brightness(1.1);
-}
-
-.pixel-btn:active {
-  transform: translateY(4px);
-  box-shadow:
-    inset 3px 3px 0 rgba(255, 255, 255, 0.4),
-    inset -3px -3px 0 rgba(0, 0, 0, 0.3),
-    0 2px 0 #000;
-}
-
-/* ===== 电台主体 ===== */
-.radio-stage {
-  width: 100%;
-  max-width: 900px;
-  display: flex;
-  flex-direction: column;
-  gap: 24px;
-}
-
-.radio-unit {
-  position: relative;
-  background: var(--radio-shell);
-  border: 4px solid var(--radio-shell-dark);
-  box-shadow:
-    inset 4px 4px 0 var(--radio-shell-light),
-    inset -4px -4px 0 var(--radio-shell-dark),
-    0 10px 0 rgba(0, 0, 0, 0.5);
-  padding: 20px;
-}
-
-/* 天线 */
-.antena {
-  position: absolute;
-  top: -70px;
-  right: 60px;
-  width: 4px;
-  height: 80px;
-  transform: rotate(20deg);
-  transform-origin: bottom center;
-}
-
-.antena-line {
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(180deg, #888, var(--radio-shell-light));
-}
-
-.antena-tip {
-  position: absolute;
-  top: -6px;
-  left: -4px;
-  width: 12px;
-  height: 12px;
-  background: var(--ch-color);
-  border: 2px solid #000;
-}
-
-/* 顶部品牌栏 */
-.radio-topbar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding-bottom: 16px;
-  border-bottom: 3px solid var(--radio-shell-dark);
-  margin-bottom: 20px;
-}
-
-.brand {
-  font-family: 'Press Start 2P', monospace;
-  font-size: 12px;
-  color: var(--ch-color);
-  text-shadow: 0 0 6px var(--ch-color-dim);
-}
-
-.model {
-  font-family: 'Press Start 2P', monospace;
-  font-size: 8px;
-  color: var(--text-dim);
-}
-
-/* 主体网格 */
-.radio-main {
-  display: grid;
-  grid-template-columns: 1.5fr 1fr;
-  gap: 20px;
-}
-
-/* ===== LCD 屏幕 ===== */
-.lcd-panel {
-  background: #000;
-  padding: 6px;
-  border: 3px solid var(--radio-shell-dark);
-}
-
-.lcd-screen {
-  background: var(--lcd-bg);
-  padding: 14px;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.lcd-top {
-  display: flex;
-  align-items: baseline;
-  gap: 8px;
-}
-
-.lcd-freq {
-  font-family: 'Press Start 2P', monospace;
+.content-inner h2 {
+  font-family: 'ZCOOL KuaiLe', 'Press Start 2P', sans-serif;
   font-size: 28px;
-  color: var(--ch-color);
-  text-shadow: 0 0 10px var(--ch-color);
-}
-
-.lcd-mhz {
-  font-family: 'Press Start 2P', monospace;
-  font-size: 10px;
-  color: var(--ch-color);
-  opacity: 0.7;
-}
-
-.lcd-channel {
-  font-size: 24px;
-  color: var(--lcd-glow);
-  line-height: 1;
-}
-
-#wave-canvas {
-  width: 100%;
-  height: 60px;
-  background: rgba(0, 0, 0, 0.5);
-  border: 2px solid rgba(126, 231, 135, 0.2);
-}
-
-.lcd-status {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-family: 'Press Start 2P', monospace;
-  font-size: 8px;
-  color: var(--lcd-glow);
-}
-
-.status-dot {
-  width: 8px;
-  height: 8px;
-  background: #ff4444;
-  animation: pulse 1s infinite;
-}
-
-@keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.3; }
-}
-
-/* ===== 控制区 ===== */
-.controls {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-/* LED 指示灯 */
-.led-row {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.led-btn {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  background: var(--radio-shell-dark);
-  border: 2px solid #000;
-  padding: 6px 10px;
-  cursor: pointer;
-  color: var(--text-dim);
-  font-family: 'Press Start 2P', monospace;
-  font-size: 8px;
-}
-
-.led-btn:hover {
-  background: var(--radio-shell-light);
-}
-
-.led {
-  width: 10px;
-  height: 10px;
-  background: #333;
-  border: 2px solid #000;
-}
-
-.led-btn.active .led {
-  background: var(--ch-color);
-  box-shadow: 0 0 8px var(--ch-color);
-}
-
-.led-btn.active {
-  color: var(--ch-color);
-}
-
-.led-label {
-  line-height: 1;
-}
-
-/* 调频旋钮 */
-.tuner {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
-}
-
-.knob-btn {
-  width: 36px;
-  height: 36px;
-  background: var(--radio-shell-light);
-  border: 3px solid #000;
-  cursor: pointer;
-  color: var(--text-light);
-  font-size: 14px;
-  box-shadow:
-    inset 2px 2px 0 rgba(255, 255, 255, 0.2),
-    inset -2px -2px 0 rgba(0, 0, 0, 0.3);
-}
-
-.knob-btn:active {
-  box-shadow: inset 2px 2px 0 rgba(0, 0, 0, 0.3);
-}
-
-.knob {
-  width: 64px;
-  height: 64px;
-  background: var(--radio-shell-light);
-  border: 4px solid #000;
-  cursor: pointer;
-  position: relative;
-  box-shadow:
-    inset 3px 3px 0 rgba(255, 255, 255, 0.2),
-    inset -3px -3px 0 rgba(0, 0, 0, 0.4);
-  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-}
-
-.knob-inner {
-  position: absolute;
-  inset: 8px;
-  background: var(--radio-shell);
-  border: 2px solid #000;
-}
-
-.knob-marker {
-  position: absolute;
-  top: 4px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 4px;
-  height: 12px;
-  background: var(--ch-color);
-}
-
-/* 音量 */
-.volume-control {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.vol-icon {
-  font-size: 20px;
-  color: var(--ch-color);
-}
-
-.pixel-slider {
-  flex: 1;
-  -webkit-appearance: none;
-  appearance: none;
-  height: 12px;
-  background: var(--radio-shell-dark);
-  border: 2px solid #000;
-  cursor: pointer;
-}
-
-.pixel-slider::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  appearance: none;
-  width: 16px;
-  height: 20px;
-  background: var(--ch-color);
-  border: 2px solid #000;
-  cursor: pointer;
-}
-
-.pixel-slider::-moz-range-thumb {
-  width: 16px;
-  height: 20px;
-  background: var(--ch-color);
-  border: 2px solid #000;
-  cursor: pointer;
-}
-
-.power-off {
-  font-size: 9px;
-  padding: 10px;
-  background: #ff6b6b;
-}
-
-/* 喇叭网 */
-.radio-speaker {
-  margin-top: 20px;
-  padding-top: 16px;
-  border-top: 3px solid var(--radio-shell-dark);
-}
-
-.speaker-grid {
-  height: 40px;
-  background:
-    repeating-linear-gradient(0deg, var(--radio-shell-dark) 0 3px, transparent 3px 8px),
-    repeating-linear-gradient(90deg, var(--radio-shell-dark) 0 3px, transparent 3px 8px);
-  background-color: var(--radio-shell-light);
-}
-
-/* ===== 内容面板 ===== */
-.content-panel {
-  background: var(--radio-shell);
-  border: 4px solid var(--radio-shell-dark);
-  box-shadow:
-    inset 4px 4px 0 var(--radio-shell-light),
-    inset -4px -4px 0 var(--radio-shell-dark),
-    0 10px 0 rgba(0, 0, 0, 0.5);
-  padding: 24px;
-}
-
-.content-header {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  padding-bottom: 16px;
-  border-bottom: 3px solid var(--radio-shell-dark);
+  color: var(--star-gold);
   margin-bottom: 20px;
+  text-shadow: 2px 2px 0 rgba(0,0,0,0.5);
 }
 
-.content-freq {
-  font-family: 'Press Start 2P', monospace;
-  font-size: 12px;
-  color: var(--ch-color);
-  padding: 6px 10px;
-  background: #000;
-  border: 2px solid var(--ch-color);
+.content-inner h3 {
+  font-family: 'ZCOOL KuaiLe', sans-serif;
+  font-size: 22px;
+  color: var(--radio-cream);
+  margin: 28px 0 12px;
+  border-left: 4px solid var(--radio-red);
+  padding-left: 12px;
 }
 
-.content-title {
-  font-family: 'Press Start 2P', monospace;
-  font-size: 11px;
-  color: var(--text-light);
-}
+.content-inner p { margin-bottom: 12px; }
+.content-inner ul, .content-inner ol { margin: 0 0 16px 24px; }
+.content-inner li { margin-bottom: 6px; }
 
-.content-body {
-  font-size: 20px;
-  line-height: 1.6;
-  color: var(--text-light);
-}
-
-.content-body h3 {
-  font-family: 'Press Start 2P', monospace;
-  font-size: 11px;
-  color: var(--ch-color);
-  margin: 24px 0 12px;
-  text-shadow: 0 0 6px var(--ch-color-dim);
-}
-
-.content-body h3:first-child {
-  margin-top: 0;
-}
-
-.content-body p {
-  margin-bottom: 12px;
-}
-
-.content-body ul, .content-body ol {
-  margin: 0 0 16px 24px;
-}
-
-.content-body li {
-  margin-bottom: 6px;
-}
-
-.content-body .tag {
+.content-inner .tag {
   display: inline-block;
-  padding: 4px 10px;
+  padding: 3px 10px;
   margin: 2px 4px 2px 0;
-  background: var(--ch-color-dim);
-  border: 2px solid var(--ch-color);
-  color: var(--ch-color);
-  font-size: 16px;
+  background: rgba(184,74,58,0.25);
+  border: 2px solid var(--radio-red);
+  color: var(--radio-cream);
+  font-size: 17px;
 }
 
-.content-body .card {
-  background: rgba(0, 0, 0, 0.3);
-  border: 2px solid var(--ch-color-dim);
+.content-inner .card {
+  background: rgba(61,43,31,0.6);
+  border: 2px solid var(--radio-brown-light);
   padding: 16px;
-  margin-bottom: 16px;
+  margin-bottom: 14px;
 }
-
-.content-body .card-title {
-  font-family: 'Press Start 2P', monospace;
-  font-size: 9px;
-  color: var(--ch-color);
+.content-inner .card-title {
+  font-family: 'ZCOOL KuaiLe', sans-serif;
+  font-size: 18px;
+  color: var(--star-gold);
   margin-bottom: 8px;
 }
 
-.content-body table {
+.content-inner table {
   width: 100%;
   border-collapse: collapse;
   margin-bottom: 16px;
   font-size: 18px;
 }
-
-.content-body th, .content-body td {
-  border: 2px solid var(--ch-color-dim);
+.content-inner th, .content-inner td {
+  border: 2px solid var(--radio-brown-light);
   padding: 8px 12px;
   text-align: left;
 }
+.content-inner th {
+  background: var(--radio-brown);
+  color: var(--star-gold);
+  font-family: 'ZCOOL KuaiLe', sans-serif;
+}
+.content-inner a { color: var(--star-gold); text-decoration: underline; }
+.content-inner .highlight { color: var(--star-gold); }
 
-.content-body th {
-  background: var(--ch-color-dim);
-  color: var(--ch-color);
-  font-family: 'Press Start 2P', monospace;
-  font-size: 8px;
+/* ===== 底部收音机 ===== */
+.radio-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  padding: 12px 16px 16px;
+  background: linear-gradient(180deg, transparent, rgba(0,0,0,0.6) 30%);
 }
 
-.content-body a {
-  color: var(--ch-color);
-  text-decoration: underline;
+.radio-body {
+  max-width: 900px;
+  margin: 0 auto;
+  background: var(--radio-red);
+  border: 4px solid var(--radio-brown);
+  box-shadow:
+    inset 3px 3px 0 rgba(255,255,255,0.15),
+    inset -3px -3px 0 rgba(0,0,0,0.3),
+    0 -4px 0 rgba(0,0,0,0.4),
+    0 8px 20px rgba(0,0,0,0.6);
+  padding: 14px;
+  display: grid;
+  grid-template-columns: 140px 1fr 130px;
+  gap: 14px;
+  align-items: center;
 }
 
-.content-body .highlight {
-  color: var(--ch-color);
+/* 左侧喇叭 */
+.speaker-grille {
+  height: 110px;
+  background: var(--radio-cream);
+  border: 3px solid var(--radio-brown);
+  overflow: hidden;
+}
+.speaker-lines {
+  width: 100%;
+  height: 100%;
+  background: repeating-linear-gradient(
+    0deg,
+    var(--radio-cream-dark) 0px,
+    var(--radio-cream-dark) 3px,
+    var(--radio-cream) 3px,
+    var(--radio-cream) 7px
+  );
+}
+
+/* 中间控制区 */
+.radio-center {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* 频率刻度条 */
+.freq-scale {
+  position: relative;
+  height: 64px;
+  background: var(--radio-cream);
+  border: 3px solid var(--radio-brown);
+  cursor: pointer;
+  user-select: none;
+  touch-action: none;
+}
+
+.freq-ticks {
+  position: absolute;
+  inset: 0;
+}
+.tick {
+  position: absolute;
+  bottom: 8px;
+  width: 2px;
+  background: var(--radio-brown);
+}
+.tick.major { height: 18px; }
+.tick.minor { height: 10px; opacity: 0.5; }
+.tick-label {
+  position: absolute;
+  bottom: -2px;
+  transform: translateX(-50%);
+  font-family: 'VT323', monospace;
+  font-size: 16px;
+  color: var(--radio-brown);
+}
+
+/* 电台星标 */
+.freq-stations {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.station-star {
+  position: absolute;
+  top: 6px;
+  transform: translateX(-50%);
+  font-size: 18px;
+  color: var(--star-gold);
+  text-shadow: 1px 1px 0 rgba(0,0,0,0.3);
+  transition: transform 0.2s;
+}
+.station-star.locked {
+  transform: translateX(-50%) scale(1.4);
+  filter: drop-shadow(0 0 6px var(--star-gold));
+}
+
+/* 可拖动指示线 */
+.freq-indicator {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  transform: translateX(-50%);
+  cursor: grab;
+  z-index: 10;
+}
+.freq-indicator:active { cursor: grabbing; }
+.indicator-line {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 3px;
+  background: var(--indicator-red);
+  box-shadow: 0 0 6px rgba(192,57,43,0.6);
+}
+.indicator-handle {
+  position: absolute;
+  top: -6px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 14px;
+  height: 14px;
+  background: var(--indicator-red);
+  border: 2px solid var(--radio-brown);
+}
+
+/* 底部控制 */
+.radio-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.ctrl-btn {
+  width: 44px;
+  height: 36px;
+  background: #2a2438;
+  border: 3px solid var(--radio-brown);
+  color: var(--radio-cream);
+  font-size: 16px;
+  cursor: pointer;
+  box-shadow: inset 2px 2px 0 rgba(255,255,255,0.1), inset -2px -2px 0 rgba(0,0,0,0.3);
+}
+.ctrl-btn:active {
+  box-shadow: inset 2px 2px 0 rgba(0,0,0,0.3);
+  transform: translateY(1px);
+}
+
+.knob-round {
+  width: 40px;
+  height: 40px;
+  background: radial-gradient(circle at 35% 30%, #e8e8e8, #a0a0a0 60%, #707070);
+  border: 3px solid var(--radio-brown);
+  cursor: pointer;
+  position: relative;
+  transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1);
+}
+.knob-mark {
+  position: absolute;
+  top: 4px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 3px;
+  height: 12px;
+  background: var(--radio-brown);
+}
+
+.hint-text {
+  flex: 1;
+  font-family: 'ZCOOL KuaiLe', 'VT323', sans-serif;
+  font-size: 16px;
+  color: var(--radio-cream);
+  opacity: 0.85;
+  padding-left: 6px;
+}
+
+/* 右侧数字屏 */
+.radio-right {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.digital-display {
+  background: #0a1a0a;
+  border: 3px solid var(--radio-brown);
+  padding: 6px 10px;
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  width: 100%;
+  justify-content: center;
+}
+.digital-freq {
+  font-family: 'VT323', monospace;
+  font-size: 32px;
+  color: var(--digital-green);
+  text-shadow: 0 0 8px var(--digital-green);
+  line-height: 1;
+}
+.digital-mhz {
+  font-family: 'VT323', monospace;
+  font-size: 16px;
+  color: var(--digital-green);
+  opacity: 0.7;
+}
+
+.signal-bars {
+  display: flex;
+  align-items: flex-end;
+  gap: 3px;
+  height: 24px;
+}
+.signal-bars .bar {
+  width: 8px;
+  background: #4a3a2a;
+  border: 1px solid var(--radio-brown);
+}
+.signal-bars .bar:nth-child(1) { height: 8px; }
+.signal-bars .bar:nth-child(2) { height: 12px; }
+.signal-bars .bar:nth-child(3) { height: 16px; }
+.signal-bars .bar:nth-child(4) { height: 20px; }
+.signal-bars .bar:nth-child(5) { height: 24px; }
+.signal-bars.locked .bar {
+  background: var(--star-gold);
+  box-shadow: 0 0 4px var(--star-gold);
+}
+
+.station-name {
+  font-family: 'ZCOOL KuaiLe', sans-serif;
+  font-size: 16px;
+  color: var(--radio-cream);
+  text-align: center;
+}
+
+/* ===== 开机遮罩 ===== */
+.power-mask {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  background: rgba(10,8,12,0.92);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(4px);
+}
+.power-mask.hidden { display: none; }
+
+.power-box {
+  text-align: center;
+  padding: 40px;
+}
+.power-title {
+  font-family: 'ZCOOL KuaiLe', sans-serif;
+  font-size: 42px;
+  color: var(--radio-cream);
+  margin-bottom: 8px;
+  text-shadow: 3px 3px 0 var(--radio-red);
+}
+.power-sub {
+  font-family: 'VT323', monospace;
+  font-size: 22px;
+  color: var(--text-dim);
+  margin-bottom: 32px;
+}
+.power-btn {
+  font-family: 'ZCOOL KuaiLe', sans-serif;
+  font-size: 22px;
+  padding: 14px 40px;
+  background: var(--radio-red);
+  color: var(--radio-cream);
+  border: 4px solid var(--radio-brown);
+  cursor: pointer;
+  box-shadow:
+    inset 3px 3px 0 rgba(255,255,255,0.2),
+    inset -3px -3px 0 rgba(0,0,0,0.3),
+    0 6px 0 var(--radio-brown);
+  transition: transform 0.05s;
+}
+.power-btn:active {
+  transform: translateY(4px);
+  box-shadow:
+    inset 3px 3px 0 rgba(255,255,255,0.2),
+    inset -3px -3px 0 rgba(0,0,0,0.3),
+    0 2px 0 var(--radio-brown);
+}
+.power-hint {
+  margin-top: 24px;
+  font-size: 18px;
+  color: var(--text-dim);
 }
 
 /* ===== 响应式 ===== */
 @media (max-width: 700px) {
-  .radio-main {
-    grid-template-columns: 1fr;
-  }
-
-  .boot-body {
-    flex-direction: column;
-  }
-
-  .boot-speaker {
-    width: 100%;
-    height: 40px;
-  }
-
-  .content-header {
-    flex-direction: column;
-    align-items: flex-start;
+  .radio-body {
+    grid-template-columns: 80px 1fr 100px;
     gap: 8px;
+    padding: 10px;
   }
-
-  .content-title {
-    font-size: 9px;
-  }
-
-  .lcd-freq {
-    font-size: 22px;
-  }
-}
-
-/* ===== 减少动画 ===== */
-@media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-  }
+  .speaker-grille { height: 90px; }
+  .digital-freq { font-size: 24px; }
+  .hint-text { font-size: 13px; }
+  .content-area { padding-bottom: 200px; }
+  .ctrl-btn { width: 36px; height: 30px; }
+  .knob-round { width: 32px; height: 32px; }
 }

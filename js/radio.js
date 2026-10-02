@@ -1,201 +1,295 @@
 /* ============================================================
-   电台主控逻辑
+   外婆的收音机 · 主控逻辑
+   拖动频率指示线，扫过电台时锁定并切换内容/音乐
    ============================================================ */
 
 (function () {
+  const FREQ_MIN = 88;
+  const FREQ_MAX = 108;
+  const LOCK_THRESHOLD = 0.6; // 距离电台多少 MHz 内锁定
+
   const state = {
     powered: false,
-    currentChannel: 0,
-    isSwitching: false
+    currentFreq: 88.1,
+    currentStation: -1,
+    isDragging: false,
+    isTuning: false
   };
 
   // DOM
   const $ = (id) => document.getElementById(id);
-  const bootScreen = $("boot-screen");
-  const radioStage = $("radio-stage");
+  const contentInner = $("content-inner");
+  const freqScale = $("freq-scale");
+  const freqTicks = $("freq-ticks");
+  const freqStations = $("freq-stations");
+  const indicator = $("freq-indicator");
+  const digitalFreq = $("digital-freq");
+  const stationName = $("station-name");
+  const signalBars = $("signal-bars");
+  const hintText = $("hint-text");
+  const powerMask = $("power-mask");
   const powerBtn = $("power-btn");
-  const powerOff = $("power-off");
-  const lcdFreq = $("lcd-freq");
-  const lcdChannel = $("lcd-channel");
-  const contentFreq = $("content-freq");
-  const contentTitle = $("content-title");
-  const contentBody = $("content-body");
-  const ledRow = $("led-row");
-  const knob = $("knob");
-  const volume = $("volume");
-  const starfield = $("starfield");
+  const knobRound = $("knob-round");
 
-  // ===== 星空 =====
-  function createStars() {
-    for (let i = 0; i < 60; i++) {
-      const star = document.createElement("div");
-      star.className = "star";
-      star.style.left = Math.random() * 100 + "%";
-      star.style.top = Math.random() * 100 + "%";
-      star.style.animationDelay = Math.random() * 3 + "s";
-      starfield.appendChild(star);
+  // ===== 生成刻度 =====
+  function buildTicks() {
+    for (let f = FREQ_MIN; f <= FREQ_MAX; f += 0.5) {
+      const isMajor = Number.isInteger(f);
+      const tick = document.createElement("div");
+      tick.className = "tick " + (isMajor ? "major" : "minor");
+      tick.style.left = freqToPercent(f) + "%";
+      freqTicks.appendChild(tick);
+
+      if (isMajor && f % 2 === 0) {
+        const label = document.createElement("div");
+        label.className = "tick-label";
+        label.style.left = freqToPercent(f) + "%";
+        label.textContent = f;
+        freqTicks.appendChild(label);
+      }
     }
   }
 
-  // ===== 主题色 =====
-  function updateTheme(ch) {
-    document.documentElement.style.setProperty("--ch-color", ch.color);
-    document.documentElement.style.setProperty("--ch-color-dim", ch.colorDim);
-    PixelViz.setColor(ch.color);
-  }
-
-  // ===== 频率数字滚动 =====
-  function animateFreq(target) {
-    const start = parseFloat(lcdFreq.textContent);
-    const end = parseFloat(target);
-    if (start === end) return;
-    const steps = 10;
-    const inc = (end - start) / steps;
-    let i = 0;
-    const timer = setInterval(() => {
-      i++;
-      lcdFreq.textContent = (start + inc * i).toFixed(1);
-      if (i >= steps) {
-        lcdFreq.textContent = target;
-        clearInterval(timer);
-      }
-    }, 40);
-  }
-
-  // ===== LED =====
-  function updateLEDs(id) {
-    ledRow.querySelectorAll(".led-btn").forEach((btn, i) => {
-      btn.classList.toggle("active", i === id);
+  // ===== 生成电台星标 =====
+  function buildStations() {
+    CHANNELS.forEach((ch) => {
+      const star = document.createElement("div");
+      star.className = "station-star";
+      star.style.left = freqToPercent(ch.freq) + "%";
+      star.textContent = "★";
+      star.dataset.id = ch.id;
+      star.title = `FM ${ch.freq} ${ch.name}`;
+      freqStations.appendChild(star);
     });
   }
 
-  // ===== 旋钮角度 =====
-  function updateKnob(id) {
-    const angle = (id / (CHANNELS.length - 1)) * 270 - 135;
-    knob.style.transform = `rotate(${angle}deg)`;
+  // ===== 工具函数 =====
+  function freqToPercent(f) {
+    return ((f - FREQ_MIN) / (FREQ_MAX - FREQ_MIN)) * 100;
+  }
+  function percentToFreq(p) {
+    return FREQ_MIN + (p / 100) * (FREQ_MAX - FREQ_MIN);
+  }
+  function clamp(v, min, max) {
+    return Math.max(min, Math.min(max, v));
   }
 
-  // ===== 渲染频道（无音频切换） =====
-  function renderChannel(ch) {
-    updateTheme(ch);
-    animateFreq(ch.freq);
-    lcdChannel.textContent = ch.name;
-    updateLEDs(ch.id);
-    updateKnob(ch.id);
-    contentFreq.textContent = `FM ${ch.freq}`;
-    contentTitle.textContent = ch.title;
-    contentBody.innerHTML = ch.content;
+  // 找最近的电台
+  function nearestStation(freq) {
+    let best = null;
+    let bestDist = Infinity;
+    CHANNELS.forEach((ch) => {
+      const d = Math.abs(parseFloat(ch.freq) - freq);
+      if (d < bestDist) {
+        bestDist = d;
+        best = ch;
+      }
+    });
+    return { station: best, dist: bestDist };
   }
 
-  // ===== 切换频道（含音频） =====
-  async function switchChannel(id) {
-    if (state.isSwitching || id === state.currentChannel) return;
-    state.isSwitching = true;
+  // ===== 更新指示线位置 =====
+  function setIndicator(freq) {
+    state.currentFreq = freq;
+    indicator.style.left = freqToPercent(freq) + "%";
+    digitalFreq.textContent = freq.toFixed(1);
+  }
 
-    const ch = CHANNELS[id];
-    await AudioSystem.switchChannel(id, 0.7);
+  // ===== 锁定电台 =====
+  async function lockStation(station) {
+    if (state.currentStation === station.id) return;
+    state.currentStation = station.id;
 
-    renderChannel(ch);
-    state.currentChannel = id;
-    state.isSwitching = false;
+    // 更新星标高亮
+    document.querySelectorAll(".station-star").forEach((s) => {
+      s.classList.toggle("locked", parseInt(s.dataset.id) === station.id);
+    });
+
+    // 信号满格
+    signalBars.classList.add("locked");
+    stationName.textContent = station.name;
+    hintText.textContent = `已锁定 FM ${station.freq} · ${station.name}`;
+
+    // 切换内容（淡入）
+    contentInner.style.opacity = "0";
+    setTimeout(() => {
+      contentInner.innerHTML = `<h2>FM ${station.freq} · ${station.title}</h2>` + station.content;
+      contentInner.style.opacity = "1";
+    }, 250);
+
+    // 切换音乐
+    if (state.powered) {
+      await AudioSystem.switchChannel(station.id, 0.5);
+    }
+  }
+
+  // ===== 解锁（离开电台） =====
+  function unlockStation() {
+    if (state.currentStation === -1) return;
+    state.currentStation = -1;
+    document.querySelectorAll(".station-star").forEach((s) => s.classList.remove("locked"));
+    signalBars.classList.remove("locked");
+    stationName.textContent = "——";
+    hintText.textContent = "沙沙沙…… 慢慢转动旋钮，寻找藏在夜空里的电台";
+  }
+
+  // ===== 调频处理（拖动中） =====
+  function tuneTo(freq) {
+    freq = clamp(freq, FREQ_MIN, FREQ_MAX);
+    setIndicator(freq);
+
+    const { station, dist } = nearestStation(freq);
+
+    if (dist <= LOCK_THRESHOLD) {
+      // 吸附到电台频率
+      const targetFreq = parseFloat(station.freq);
+      setIndicator(targetFreq);
+      lockStation(station);
+    } else {
+      unlockStation();
+      // 播放杂音
+      if (state.powered && !state.isTuning) {
+        AudioSystem.playStatic(0.3);
+      }
+    }
+  }
+
+  // ===== 拖动交互 =====
+  function getFreqFromEvent(e) {
+    const rect = freqScale.getBoundingClientRect();
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    const pct = ((clientX - rect.left) / rect.width) * 100;
+    return percentToFreq(clamp(pct, 0, 100));
+  }
+
+  function onDragStart(e) {
+    if (!state.powered) return;
+    state.isDragging = true;
+    e.preventDefault();
+    tuneTo(getFreqFromEvent(e));
+  }
+  function onDragMove(e) {
+    if (!state.isDragging) return;
+    e.preventDefault();
+    tuneTo(getFreqFromEvent(e));
+  }
+  function onDragEnd() {
+    state.isDragging = false;
+  }
+
+  // ===== 旋钮/按钮切换 =====
+  function nextStation() {
+    if (!state.powered) return;
+    const sorted = [...CHANNELS].sort((a, b) => parseFloat(a.freq) - parseFloat(b.freq));
+    let idx = sorted.findIndex((c) => c.id === state.currentStation);
+    idx = (idx + 1) % sorted.length;
+    const target = sorted[idx];
+    animateTuneTo(parseFloat(target.freq));
+  }
+  function prevStation() {
+    if (!state.powered) return;
+    const sorted = [...CHANNELS].sort((a, b) => parseFloat(a.freq) - parseFloat(b.freq));
+    let idx = sorted.findIndex((c) => c.id === state.currentStation);
+    idx = (idx - 1 + sorted.length) % sorted.length;
+    const target = sorted[idx];
+    animateTuneTo(parseFloat(target.freq));
+  }
+
+  // 动画调频
+  function animateTuneTo(targetFreq) {
+    if (state.isTuning) return;
+    state.isTuning = true;
+    const start = state.currentFreq;
+    const duration = 600;
+    const startTime = performance.now();
+
+    function step(now) {
+      const t = Math.min(1, (now - startTime) / duration);
+      const eased = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+      const freq = start + (targetFreq - start) * eased;
+      setIndicator(freq);
+      if (t < 1) {
+        requestAnimationFrame(step);
+      } else {
+        setIndicator(targetFreq);
+        const { station } = nearestStation(targetFreq);
+        lockStation(station);
+        state.isTuning = false;
+      }
+    }
+    // 播放杂音
+    if (state.powered) AudioSystem.playStatic(0.5);
+    AudioSystem.playClick();
+    requestAnimationFrame(step);
   }
 
   // ===== 开机 =====
   async function powerOn() {
     powerBtn.disabled = true;
-    powerBtn.textContent = "LOADING...";
+    powerBtn.textContent = "正在开机…";
 
-    // 关键：在用户点击手势内第一时间恢复音频上下文
     await AudioSystem.resume();
+    await AudioSystem.init();
 
-    // 先初始化波形
-    try {
-      PixelViz.init("wave-canvas");
-      PixelViz.start();
-    } catch (e) {}
-
-    // 切换界面
-    bootScreen.style.display = "none";
-    radioStage.style.display = "flex";
     state.powered = true;
+    powerMask.classList.add("hidden");
 
-    // 渲染第一个频道
-    renderChannel(CHANNELS[0]);
-    state.currentChannel = 0;
-
-    // 音频初始化并播放首频道
-    AudioSystem.init().then(() => {
-      AudioSystem.playFirst(0);
-    }).catch((e) => console.log("音频初始化失败:", e));
+    // 默认锁定第一个电台
+    const first = CHANNELS[0];
+    setIndicator(parseFloat(first.freq));
+    lockStation(first);
+    AudioSystem.playFirst(0);
 
     powerBtn.disabled = false;
-    powerBtn.textContent = "ON AIR";
+    powerBtn.textContent = "▶ 开机";
   }
 
-  // ===== 关机 =====
-  function shutdown() {
-    AudioSystem.stopAll();
-    PixelViz.stop();
-    radioStage.style.display = "none";
-    bootScreen.style.display = "flex";
-    state.powered = false;
-    state.currentChannel = 0;
+  // ===== 星空 =====
+  function createStars() {
+    for (let i = 0; i < 50; i++) {
+      const star = document.createElement("div");
+      star.className = "star";
+      star.style.left = Math.random() * 100 + "%";
+      star.style.top = Math.random() * 70 + "%";
+      star.style.animationDelay = Math.random() * 3 + "s";
+      $("starfield").appendChild(star);
+    }
   }
 
-  // ===== 事件 =====
+  // ===== 事件绑定 =====
   function bindEvents() {
     powerBtn.addEventListener("click", powerOn);
-    powerOff.addEventListener("click", shutdown);
 
-    // 频道按钮
-    ledRow.querySelectorAll(".led-btn").forEach((btn) => {
-      btn.addEventListener("click", () => {
-        if (!state.powered || state.isSwitching) return;
-        switchChannel(parseInt(btn.dataset.channel));
-      });
-    });
+    // 拖动
+    freqScale.addEventListener("mousedown", onDragStart);
+    document.addEventListener("mousemove", onDragMove);
+    document.addEventListener("mouseup", onDragEnd);
+    freqScale.addEventListener("touchstart", onDragStart, { passive: false });
+    document.addEventListener("touchmove", onDragMove, { passive: false });
+    document.addEventListener("touchend", onDragEnd);
 
-    // 旋钮左右
-    $("knob-prev").addEventListener("click", () => {
-      if (!state.powered || state.isSwitching) return;
-      const prev = (state.currentChannel - 1 + CHANNELS.length) % CHANNELS.length;
-      switchChannel(prev);
-    });
-
-    $("knob-next").addEventListener("click", () => {
-      if (!state.powered || state.isSwitching) return;
-      const next = (state.currentChannel + 1) % CHANNELS.length;
-      switchChannel(next);
-    });
-
-    // 点旋钮 = 下一个
-    knob.addEventListener("click", () => {
-      if (!state.powered || state.isSwitching) return;
-      const next = (state.currentChannel + 1) % CHANNELS.length;
-      switchChannel(next);
-    });
-
-    // 音量
-    volume.addEventListener("input", (e) => {
-      AudioSystem.setVolume(e.target.value / 100);
-    });
+    // 按钮
+    $("btn-prev").addEventListener("click", prevStation);
+    $("btn-next").addEventListener("click", nextStation);
+    knobRound.addEventListener("click", nextStation);
 
     // 键盘
     document.addEventListener("keydown", (e) => {
-      if (!state.powered || state.isSwitching) return;
-      if (e.key === "ArrowLeft" || e.key === "ArrowUp") {
-        const prev = (state.currentChannel - 1 + CHANNELS.length) % CHANNELS.length;
-        switchChannel(prev);
-      } else if (e.key === "ArrowRight" || e.key === "ArrowDown") {
-        const next = (state.currentChannel + 1) % CHANNELS.length;
-        switchChannel(next);
-      }
+      if (!state.powered) return;
+      if (e.key === "ArrowLeft") prevStation();
+      if (e.key === "ArrowRight") nextStation();
     });
+
+    // 内容淡入过渡
+    contentInner.style.transition = "opacity 0.25s ease";
   }
 
-  // 启动
+  // ===== 启动 =====
   window.addEventListener("load", () => {
     createStars();
+    buildTicks();
+    buildStations();
+    setIndicator(88.1);
     bindEvents();
   });
 })();
