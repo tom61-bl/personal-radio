@@ -105,22 +105,25 @@
     powerBtn.disabled = true;
     powerBtn.textContent = "LOADING...";
 
-    await AudioSystem.init();
-    PixelViz.init("wave-canvas");
-    PixelViz.start();
+    // 先初始化波形（不依赖音频）
+    try {
+      PixelViz.init("wave-canvas");
+      PixelViz.start();
+    } catch (e) {}
 
+    // 立即切换界面，不等待音频
     bootScreen.style.display = "none";
     radioStage.style.display = "flex";
     state.powered = true;
 
-    // 初始化第一个频道
+    // 渲染第一个频道
     renderChannel(CHANNELS[0]);
     state.currentChannel = 0;
 
-    // 直接播放第一个频道音乐（无杂音）
-    AudioSystem.playBeep();
-    if (AudioSystem.musicLoaded) {
+    // 音频在后台初始化（不阻塞 UI）
+    AudioSystem.init().then(() => {
       try {
+        AudioSystem.playBeep();
         const p = AudioSystem.players.player("0");
         if (p && p.loaded) {
           p.loop = true;
@@ -129,7 +132,7 @@
           p.volume.rampTo(Tone.gainToDb(AudioSystem.volume), 1.5);
         }
       } catch (e) {}
-    }
+    }).catch((e) => console.log("音频后台初始化失败:", e));
 
     powerBtn.disabled = false;
     powerBtn.textContent = "ON AIR";
