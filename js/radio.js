@@ -105,13 +105,16 @@
     powerBtn.disabled = true;
     powerBtn.textContent = "LOADING...";
 
-    // 先初始化波形（不依赖音频）
+    // 关键：在用户点击手势内第一时间恢复音频上下文
+    await AudioSystem.resume();
+
+    // 先初始化波形
     try {
       PixelViz.init("wave-canvas");
       PixelViz.start();
     } catch (e) {}
 
-    // 立即切换界面，不等待音频
+    // 切换界面
     bootScreen.style.display = "none";
     radioStage.style.display = "flex";
     state.powered = true;
@@ -120,7 +123,7 @@
     renderChannel(CHANNELS[0]);
     state.currentChannel = 0;
 
-    // 音频在后台初始化（不阻塞 UI）
+    // 音频其余部分在后台初始化并播放
     AudioSystem.init().then(() => {
       try {
         AudioSystem.playBeep();
@@ -131,8 +134,8 @@
           p.start();
           p.volume.rampTo(Tone.gainToDb(AudioSystem.volume), 1.5);
         }
-      } catch (e) {}
-    }).catch((e) => console.log("音频后台初始化失败:", e));
+      } catch (e) { console.log("首播失败:", e); }
+    }).catch((e) => console.log("音频初始化失败:", e));
 
     powerBtn.disabled = false;
     powerBtn.textContent = "ON AIR";

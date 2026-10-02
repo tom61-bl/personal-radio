@@ -14,17 +14,23 @@ const AudioSystem = {
   ready: false,
   musicLoaded: false,
 
-  // 初始化（完全不阻塞：任何一步失败都不影响 UI 继续）
-  async init() {
-    // 1. 尝试恢复音频上下文（需要真实手势；超时兜底）
+  // 必须在用户点击手势中第一时间调用：恢复上下文
+  async resume() {
     try {
-      await Promise.race([
-        Tone.start(),
-        new Promise((resolve) => setTimeout(resolve, 1500))
-      ]);
+      await Tone.start();
+      if (Tone.context.state !== "running") await Tone.context.resume();
+      console.log("音频上下文已恢复:", Tone.context.state);
     } catch (e) {
-      console.log("音频上下文恢复延迟");
+      console.log("上下文恢复失败:", e);
     }
+  },
+
+  // 初始化（上下文已恢复后调用；完全不阻塞 UI）
+  async init() {
+    // 确保上下文运行
+    try {
+      if (Tone.context.state !== "running") await Tone.context.resume();
+    } catch (e) {}
     try { Tone.Transport.start(); } catch (e) {}
 
     // 2. 主音量
