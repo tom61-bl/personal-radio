@@ -123,18 +123,9 @@
     renderChannel(CHANNELS[0]);
     state.currentChannel = 0;
 
-    // 音频其余部分在后台初始化并播放
+    // 音频初始化并播放首频道
     AudioSystem.init().then(() => {
-      try {
-        AudioSystem.playBeep();
-        const p = AudioSystem.players.player("0");
-        if (p && p.loaded) {
-          p.loop = true;
-          p.volume.value = -Infinity;
-          p.start();
-          p.volume.rampTo(Tone.gainToDb(AudioSystem.volume), 1.5);
-        }
-      } catch (e) { console.log("首播失败:", e); }
+      AudioSystem.playFirst(0);
     }).catch((e) => console.log("音频初始化失败:", e));
 
     powerBtn.disabled = false;

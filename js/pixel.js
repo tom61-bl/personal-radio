@@ -46,11 +46,11 @@ const PixelViz = {
     const gap = 2;
     const mid = h / 2;
 
-    // 绘制像素柱状波形
+    // 绘制像素柱状波形（数据为 0-255 频率值）
     for (let i = 0; i < barCount; i++) {
-      const dataIndex = Math.floor((i / barCount) * data.length);
-      const value = Math.abs(data[dataIndex] || 0);
-      const barHeight = Math.max(2, Math.floor(value * h * 0.9));
+      const dataIndex = Math.floor((i / barCount) * (data.length / 2));
+      const value = (data[dataIndex] || 0) / 255;
+      const barHeight = Math.max(2, Math.floor(value * h * 0.95));
 
       // 像素化高度（对齐到 4 的倍数）
       const pixelHeight = Math.floor(barHeight / 4) * 4;

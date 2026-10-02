@@ -1,221 +1,242 @@
 /* ============================================================
-   音频系统 · 调频杂音、音乐、音效、波形分析
+   音频系统
+   - 音乐：原生 HTML5 Audio（稳定、可预测）
+   - 音效：Tone.js（哔声、旋钮声）
+   - 调频杂音：Web Audio 生成
    ============================================================ */
 
 const AudioSystem = {
-  players: null,
-  analyser: null,
-  noiseNode: null,
-  noiseGain: null,
-  staticSource: null,
+  tracks: {},          // 5 个音乐 Audio 对象
   currentChannel: -1,
   isTuning: false,
   volume: 0.6,
   ready: false,
-  musicLoaded: false,
+  analyser: null,
+  noiseGain: null,
+  noiseNode: null,
+  ctx: null,
 
-  // 必须在用户点击手势中第一时间调用：恢复上下文
+  // 在用户点击手势内第一时间调用
   async resume() {
+    // 恢复 Tone 上下文
     try {
       await Tone.start();
       if (Tone.context.state !== "running") await Tone.context.resume();
-      console.log("音频上下文已恢复:", Tone.context.state);
     } catch (e) {
-      console.log("上下文恢复失败:", e);
+      console.log("Tone 恢复:", e);
     }
+    // 恢复 Web Audio（用于杂音）
+    try {
+      if (this.ctx && this.ctx.state === "suspended") await this.ctx.resume();
+    } catch (e) {}
   },
 
-  // 初始化（上下文已恢复后调用；完全不阻塞 UI）
+  // 初始化
   async init() {
-    // 确保上下文运行
-    try {
-      if (Tone.context.state !== "running") await Tone.context.resume();
-    } catch (e) {}
-    try { Tone.Transport.start(); } catch (e) {}
+    // 创建 5 个音乐轨道
+    const files = [
+      "audio/ch1-identity.ogg",
+      "audio/ch2-now.ogg",
+      "audio/ch3-future.ogg",
+      "audio/ch4-contact.ogg",
+      "audio/ch5-works.ogg"
+    ];
+    files.forEach((src, i) => {
+      const a = new Audio(src);
+      a.loop = true;
+      a.preload = "auto";
+      a.volume = 0;
+      this.tracks[i] = a;
+    });
 
-    // 2. 主音量
+    // 用 Web Audio 分析音乐波形（MediaElementSource）
+    this.musicAnalyser = null;
     try {
-      Tone.Destination.volume.value = Tone.gainToDb(this.volume);
-    } catch (e) {}
-
-    // 3. 分析器（用于波形）
-    try {
-      this.analyser = new Tone.Analyser("waveform", 128);
-      Tone.Destination.connect(this.analyser);
-    } catch (e) {}
-
-    // 4. 音乐播放器（异步加载，不阻塞；包一层超时）
-    try {
-      this.players = new Tone.Players({
-        urls: {
-          0: "audio/ch1-identity.ogg",
-          1: "audio/ch2-now.ogg",
-          2: "audio/ch3-future.ogg",
-          3: "audio/ch4-contact.ogg",
-          4: "audio/ch5-works.ogg"
-        },
-        onload: () => {
-          this.musicLoaded = true;
-          console.log("音乐加载完成");
-        },
-        fadeIn: 0.5,
-        fadeOut: 0.5
-      }).toDestination();
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (!this.ctx) this.ctx = new AC();
+      this.musicAnalyser = this.ctx.createAnalyser();
+      this.musicAnalyser.fftSize = 256;
+      this.musicAnalyser.smoothingTimeConstant = 0.7;
+      Object.values(this.tracks).forEach((a) => {
+        try {
+          const src = this.ctx.createMediaElementSource(a);
+          src.connect(this.musicAnalyser);
+          this.musicAnalyser.connect(this.ctx.destination);
+        } catch (e) {
+          // 已连接过
+        }
+      });
     } catch (e) {
-      console.log("播放器创建失败:", e);
+      console.log("波形分析器创建失败:", e);
     }
 
-    // 5. 调频杂音
-    try { this.setupNoise(); } catch (e) { console.log("杂音初始化失败:", e); }
+    // 调频杂音
+    try { this.setupNoise(); } catch (e) { console.log("杂音失败:", e); }
 
     this.ready = true;
-
-    // 6. 首次真实交互时恢复音频上下文（兜底自动播放策略）
-    const resume = () => {
-      try {
-        if (Tone.context.state !== "running") Tone.context.resume();
-      } catch (e) {}
-    };
-    ["click", "keydown", "touchstart"].forEach((evt) => {
-      document.addEventListener(evt, resume, { passive: true });
-    });
   },
 
-  // 生成白噪音（调频沙沙声）
+  // 调频杂音
   setupNoise() {
-    const bufferSize = Tone.context.sampleRate * 2;
-    const noiseBuffer = Tone.context.createBuffer(
-      1, bufferSize, Tone.context.sampleRate
-    );
-    const output = noiseBuffer.getChannelData(0);
+    const AC = window.AudioContext || window.webkitAudioContext;
+    this.ctx = new AC();
+    const bufferSize = this.ctx.sampleRate * 2;
+    const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+    const data = buffer.getChannelData(0);
     for (let i = 0; i < bufferSize; i++) {
-      // 粉噪音效果（比纯白噪音更像收音机）
-      output[i] = (Math.random() * 2 - 1) * 0.5;
+      data[i] = (Math.random() * 2 - 1) * 0.4;
     }
-    this.noiseNode = Tone.context.createBufferSource();
-    this.noiseNode.buffer = noiseBuffer;
+    this.noiseNode = this.ctx.createBufferSource();
+    this.noiseNode.buffer = buffer;
     this.noiseNode.loop = true;
-
-    this.noiseGain = Tone.context.createGain();
+    this.noiseGain = this.ctx.createGain();
     this.noiseGain.gain.value = 0;
-
-    // 加一个带通滤波器，让杂音更像收音机
-    const filter = Tone.context.createBiquadFilter();
+    const filter = this.ctx.createBiquadFilter();
     filter.type = "bandpass";
     filter.frequency.value = 1200;
-    filter.Q.value = 0.5;
-
     this.noiseNode.connect(filter);
     filter.connect(this.noiseGain);
-    this.noiseGain.connect(Tone.context.destination);
+    this.noiseGain.connect(this.ctx.destination);
     this.noiseNode.start();
   },
 
-  // 播放调频杂音（切台时）
+  // 播放调频杂音
   playStatic(duration = 0.6) {
-    const now = Tone.context.currentTime;
-    this.noiseGain.gain.cancelScheduledValues(now);
-    this.noiseGain.gain.setValueAtTime(0, now);
-    this.noiseGain.gain.linearRampToValueAtTime(0.15, now + 0.05);
-    this.noiseGain.gain.setValueAtTime(0.15, now + duration - 0.1);
-    this.noiseGain.gain.linearRampToValueAtTime(0, now + duration);
+    if (!this.ctx || !this.noiseGain) return;
+    const now = this.ctx.currentTime;
+    const g = this.noiseGain.gain;
+    g.cancelScheduledValues(now);
+    g.setValueAtTime(0, now);
+    g.linearRampToValueAtTime(0.2, now + 0.05);
+    g.setValueAtTime(0.2, now + duration - 0.1);
+    g.linearRampToValueAtTime(0, now + duration);
   },
 
-  // 播放"哔"声（频道锁定）
+  // 频道锁定哔声
   playBeep() {
-    const synth = new Tone.Synth({
-      oscillator: { type: "square" },
-      envelope: { attack: 0.01, decay: 0.05, sustain: 0, release: 0.05 }
-    }).toDestination();
-    synth.volume.value = -12;
-    synth.triggerAttackRelease("C6", "16n");
+    try {
+      const synth = new Tone.Synth({
+        oscillator: { type: "square" },
+        envelope: { attack: 0.01, decay: 0.05, sustain: 0, release: 0.05 }
+      }).toDestination();
+      synth.volume.value = -12;
+      synth.triggerAttackRelease("C6", "16n");
+    } catch (e) {}
   },
 
-  // 播放旋钮机械声
+  // 旋钮声
   playClick() {
-    const synth = new Tone.MembraneSynth({
-      pitchDecay: 0.01,
-      octaves: 2
-    }).toDestination();
-    synth.volume.value = -20;
-    synth.triggerAttackRelease("C2", "32n");
+    try {
+      const synth = new Tone.MembraneSynth({ pitchDecay: 0.01, octaves: 2 }).toDestination();
+      synth.volume.value = -20;
+      synth.triggerAttackRelease("C2", "32n");
+    } catch (e) {}
+  },
+
+  // 淡入播放指定轨道
+  fadeIn(id, fade = 1.5) {
+    const a = this.tracks[id];
+    if (!a) return;
+    a.volume = 0;
+    const p = a.play();
+    if (p && p.catch) p.catch((e) => console.log("播放失败:", id, e));
+    // 手动淡入
+    const target = this.volume;
+    const steps = 20;
+    let i = 0;
+    const timer = setInterval(() => {
+      i++;
+      a.volume = Math.min(target, (target * i) / steps);
+      if (i >= steps) {
+        a.volume = target;
+        clearInterval(timer);
+      }
+    }, (fade * 1000) / steps);
+  },
+
+  // 淡出停止指定轨道
+  fadeOut(id, fade = 0.5) {
+    const a = this.tracks[id];
+    if (!a) return;
+    const start = a.volume;
+    const steps = 10;
+    let i = 0;
+    const timer = setInterval(() => {
+      i++;
+      a.volume = Math.max(0, start * (1 - i / steps));
+      if (i >= steps) {
+        a.pause();
+        a.currentTime = 0;
+        a.volume = 0;
+        clearInterval(timer);
+      }
+    }, (fade * 1000) / steps);
   },
 
   // 切换频道
-  async switchChannel(channelId, duration = 0.7) {
+  async switchChannel(id, duration = 0.7) {
     if (this.isTuning) return;
     this.isTuning = true;
 
-    // 停止当前音乐
-    if (this.currentChannel >= 0 && this.players && this.musicLoaded) {
-      try {
-        const player = this.players.player(String(this.currentChannel));
-        if (player && player.loaded) {
-          player.volume.rampTo(-Infinity, duration * 0.4);
-          setTimeout(() => player.stop(), duration * 400);
-        }
-      } catch (e) {}
+    // 淡出旧音乐
+    if (this.currentChannel >= 0) {
+      this.fadeOut(this.currentChannel, duration * 0.5);
     }
 
-    // 播放调频杂音
+    // 调频杂音 + 旋钮声
     this.playStatic(duration);
-
-    // 播放旋钮声
     this.playClick();
 
-    // 等待调频完成
-    await new Promise(r => setTimeout(r, duration * 1000));
+    await new Promise((r) => setTimeout(r, duration * 1000));
 
-    // 频道锁定哔声
+    // 锁定哔声
     this.playBeep();
 
-    // 播放新音乐
-    if (this.players && this.musicLoaded) {
-      try {
-        const player = this.players.player(String(channelId));
-        if (player && player.loaded) {
-          player.loop = true;
-          player.volume.value = -Infinity;
-          player.start();
-          player.volume.rampTo(Tone.gainToDb(this.volume), 1.5);
-        }
-      } catch (e) {
-        console.log("音乐文件尚未就绪，跳过播放");
-      }
-    }
+    // 淡入新音乐
+    this.fadeIn(id, 1.2);
 
-    this.currentChannel = channelId;
+    this.currentChannel = id;
     this.isTuning = false;
   },
 
-  // 设置音量
-  setVolume(val) {
-    this.volume = val;
-    if (this.ready) {
-      Tone.Destination.volume.rampTo(Tone.gainToDb(val), 0.1);
-    }
+  // 直接播放（开机首频道，无杂音）
+  playFirst(id) {
+    this.playBeep();
+    this.fadeIn(id, 1.5);
+    this.currentChannel = id;
   },
 
-  // 获取波形数据
+  // 设置音量（影响当前轨道）
+  setVolume(val) {
+    this.volume = val;
+    Object.values(this.tracks).forEach((a) => {
+      if (!a.paused) a.volume = val;
+    });
+  },
+
+  // 获取音乐波形数据
   getWaveform() {
-    if (this.analyser) {
-      return this.analyser.getValue();
+    if (this.musicAnalyser) {
+      const arr = new Uint8Array(this.musicAnalyser.frequencyBinCount);
+      this.musicAnalyser.getByteFrequencyData(arr);
+      return arr;
     }
-    return new Float32Array(128);
+    return new Uint8Array(128);
   },
 
   // 停止所有
   stopAll() {
-    if (this.players) {
-      try {
-        this.players.stopAll();
-      } catch (e) {}
-    }
-    if (this.noiseGain) {
-      const now = Tone.context.currentTime;
-      this.noiseGain.gain.cancelScheduledValues(now);
-      this.noiseGain.gain.setValueAtTime(this.noiseGain.gain.value, now);
-      this.noiseGain.gain.linearRampToValueAtTime(0, now + 0.3);
+    Object.values(this.tracks).forEach((a) => {
+      a.pause();
+      a.currentTime = 0;
+      a.volume = 0;
+    });
+    if (this.noiseGain && this.ctx) {
+      const now = this.ctx.currentTime;
+      const g = this.noiseGain.gain;
+      g.cancelScheduledValues(now);
+      g.setValueAtTime(g.value, now);
+      g.linearRampToValueAtTime(0, now + 0.2);
     }
   }
 };
