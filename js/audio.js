@@ -6,32 +6,42 @@
    ============================================================ */
 
 const AudioSystem = {
-  tracks: {},          // 5 个音乐 Audio 对象
+  tracks: {},
   currentChannel: -1,
   isTuning: false,
   volume: 0.6,
   ready: false,
-  analyser: null,
+  ctx: null,
   noiseGain: null,
   noiseNode: null,
-  ctx: null,
+  musicAnalyser: null,
 
   // 在用户点击手势内第一时间调用
   async resume() {
-    // 恢复 Tone 上下文
+    // 1. 恢复 Tone
     try {
       await Tone.start();
-      if (Tone.context.state !== "running") await Tone.context.resume();
+      if (Tone.context.state !== "running") {
+        await Tone.context.resume();
+      }
     } catch (e) {
-      console.log("Tone 恢复:", e);
+      console.log("[audio] Tone resume:", e);
     }
-    // 恢复 Web Audio（用于杂音）
+    // 2. 创建/恢复 Web Audio 上下文
     try {
-      if (this.ctx && this.ctx.state === "suspended") await this.ctx.resume();
-    } catch (e) {}
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (!this.ctx) {
+        this.ctx = new AC();
+      }
+      if (this.ctx.state === "suspended") {
+        await this.ctx.resume();
+      }
+    } catch (e) {
+      console.log("[audio] ctx resume:", e);
+    }
   },
 
-  // 初始化
+  // 初始化（必须在 resume 之后调用）
   async init() {
     // 创建 5 个音乐轨道
     const files = [
@@ -46,42 +56,44 @@ const AudioSystem = {
       a.loop = true;
       a.preload = "auto";
       a.volume = 0;
+      a.crossOrigin = "anonymous";
       this.tracks[i] = a;
     });
 
-    // 用 Web Audio 分析音乐波形（MediaElementSource）
-    this.musicAnalyser = null;
+    // 波形分析器
     try {
-      const AC = window.AudioContext || window.webkitAudioContext;
-      if (!this.ctx) this.ctx = new AC();
-      this.musicAnalyser = this.ctx.createAnalyser();
-      this.musicAnalyser.fftSize = 256;
-      this.musicAnalyser.smoothingTimeConstant = 0.7;
-      Object.values(this.tracks).forEach((a) => {
-        try {
-          const src = this.ctx.createMediaElementSource(a);
-          src.connect(this.musicAnalyser);
-          this.musicAnalyser.connect(this.ctx.destination);
-        } catch (e) {
-          // 已连接过
-        }
-      });
+      if (this.ctx && !this.musicAnalyser) {
+        this.musicAnalyser = this.ctx.createAnalyser();
+        this.musicAnalyser.fftSize = 256;
+        this.musicAnalyser.smoothingTimeConstant = 0.7;
+        Object.values(this.tracks).forEach((a) => {
+          try {
+            const src = this.ctx.createMediaElementSource(a);
+            src.connect(this.musicAnalyser);
+            this.musicAnalyser.connect(this.ctx.destination);
+          } catch (e) {
+            // 已连接或不支持，忽略
+          }
+        });
+      }
     } catch (e) {
-      console.log("波形分析器创建失败:", e);
+      console.log("[audio] analyser:", e);
     }
 
     // 调频杂音
-    try { this.setupNoise(); } catch (e) { console.log("杂音失败:", e); }
+    try {
+      this.setupNoise();
+    } catch (e) {
+      console.log("[audio] noise setup:", e);
+    }
 
     this.ready = true;
+    console.log("[audio] init done, tracks:", Object.keys(this.tracks).length);
   },
 
   // 调频杂音
   setupNoise() {
-    if (!this.ctx) {
-      const AC = window.AudioContext || window.webkitAudioContext;
-      this.ctx = new AC();
-    }
+    if (!this.ctx) return;
     const bufferSize = this.ctx.sampleRate * 2;
     const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
     const data = buffer.getChannelData(0);
@@ -102,47 +114,49 @@ const AudioSystem = {
     this.noiseNode.start();
   },
 
-  // 播放调频杂音
   playStatic(duration = 0.6) {
     if (!this.ctx || !this.noiseGain) return;
-    const now = this.ctx.currentTime;
-    const g = this.noiseGain.gain;
-    g.cancelScheduledValues(now);
-    g.setValueAtTime(0, now);
-    g.linearRampToValueAtTime(0.2, now + 0.05);
-    g.setValueAtTime(0.2, now + duration - 0.1);
-    g.linearRampToValueAtTime(0, now + duration);
+    try {
+      const now = this.ctx.currentTime;
+      const g = this.noiseGain.gain;
+      g.cancelScheduledValues(now);
+      g.setValueAtTime(0, now);
+      g.linearRampToValueAtTime(0.15, now + 0.05);
+      g.setValueAtTime(0.15, now + Math.max(0.1, duration - 0.1));
+      g.linearRampToValueAtTime(0, now + duration);
+    } catch (e) {}
   },
 
-  // 频道锁定哔声
   playBeep() {
     try {
       const synth = new Tone.Synth({
         oscillator: { type: "square" },
         envelope: { attack: 0.01, decay: 0.05, sustain: 0, release: 0.05 }
       }).toDestination();
-      synth.volume.value = -12;
+      synth.volume.value = -14;
       synth.triggerAttackRelease("C6", "16n");
     } catch (e) {}
   },
 
-  // 旋钮声
   playClick() {
     try {
       const synth = new Tone.MembraneSynth({ pitchDecay: 0.01, octaves: 2 }).toDestination();
-      synth.volume.value = -20;
+      synth.volume.value = -22;
       synth.triggerAttackRelease("C2", "32n");
     } catch (e) {}
   },
 
-  // 淡入播放指定轨道
   fadeIn(id, fade = 1.5) {
     const a = this.tracks[id];
-    if (!a) return;
+    if (!a) {
+      console.log("[audio] fadeIn: track", id, "not found");
+      return;
+    }
     a.volume = 0;
     const p = a.play();
-    if (p && p.catch) p.catch((e) => console.log("播放失败:", id, e));
-    // 手动淡入
+    if (p && p.catch) {
+      p.catch((e) => console.log("[audio] play failed:", id, e));
+    }
     const target = this.volume;
     const steps = 20;
     let i = 0;
@@ -152,11 +166,11 @@ const AudioSystem = {
       if (i >= steps) {
         a.volume = target;
         clearInterval(timer);
+        console.log("[audio] faded in track", id, "volume:", a.volume);
       }
     }, (fade * 1000) / steps);
   },
 
-  // 淡出停止指定轨道
   fadeOut(id, fade = 0.5) {
     const a = this.tracks[id];
     if (!a) return;
@@ -175,40 +189,32 @@ const AudioSystem = {
     }, (fade * 1000) / steps);
   },
 
-  // 切换频道
   async switchChannel(id, duration = 0.7) {
     if (this.isTuning) return;
     this.isTuning = true;
 
-    // 淡出旧音乐
     if (this.currentChannel >= 0) {
       this.fadeOut(this.currentChannel, duration * 0.5);
     }
 
-    // 调频杂音 + 旋钮声
     this.playStatic(duration);
     this.playClick();
 
     await new Promise((r) => setTimeout(r, duration * 1000));
 
-    // 锁定哔声
     this.playBeep();
-
-    // 淡入新音乐
     this.fadeIn(id, 1.2);
-
     this.currentChannel = id;
     this.isTuning = false;
   },
 
-  // 直接播放（开机首频道，无杂音）
   playFirst(id) {
+    console.log("[audio] playFirst:", id);
     this.playBeep();
     this.fadeIn(id, 1.5);
     this.currentChannel = id;
   },
 
-  // 设置音量（影响当前轨道）
   setVolume(val) {
     this.volume = val;
     Object.values(this.tracks).forEach((a) => {
@@ -216,7 +222,6 @@ const AudioSystem = {
     });
   },
 
-  // 获取音乐波形数据
   getWaveform() {
     if (this.musicAnalyser) {
       const arr = new Uint8Array(this.musicAnalyser.frequencyBinCount);
@@ -226,7 +231,6 @@ const AudioSystem = {
     return new Uint8Array(128);
   },
 
-  // 停止所有
   stopAll() {
     Object.values(this.tracks).forEach((a) => {
       a.pause();
@@ -234,11 +238,13 @@ const AudioSystem = {
       a.volume = 0;
     });
     if (this.noiseGain && this.ctx) {
-      const now = this.ctx.currentTime;
-      const g = this.noiseGain.gain;
-      g.cancelScheduledValues(now);
-      g.setValueAtTime(g.value, now);
-      g.linearRampToValueAtTime(0, now + 0.2);
+      try {
+        const now = this.ctx.currentTime;
+        const g = this.noiseGain.gain;
+        g.cancelScheduledValues(now);
+        g.setValueAtTime(g.value, now);
+        g.linearRampToValueAtTime(0, now + 0.2);
+      } catch (e) {}
     }
   }
 };
