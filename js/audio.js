@@ -16,7 +16,15 @@ const AudioSystem = {
 
   // 初始化
   async init() {
-    await Tone.start();
+    // Tone.start 需要真实用户手势；用超时兜底，避免非手势环境下永久挂起
+    try {
+      await Promise.race([
+        Tone.start(),
+        new Promise((_, reject) => setTimeout(() => reject(new Error("timeout")), 2000))
+      ]);
+    } catch (e) {
+      console.log("Tone.start 未在手势中完成，延迟到首次交互恢复");
+    }
     Tone.Transport.start();
 
     // 主音量
@@ -47,6 +55,16 @@ const AudioSystem = {
     this.setupNoise();
 
     this.ready = true;
+
+    // 首次真实交互时恢复音频上下文（兜底自动播放策略）
+    const resume = () => {
+      if (Tone.context.state !== "running") {
+        Tone.context.resume();
+      }
+    };
+    ["click", "keydown", "touchstart"].forEach((evt) => {
+      document.addEventListener(evt, resume, { once: false, passive: true });
+    });
   },
 
   // 生成白噪音（调频沙沙声）
