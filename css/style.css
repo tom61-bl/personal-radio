@@ -1,0 +1,689 @@
+/* ============================================================
+   多频道像素电台 · 样式
+   ============================================================ */
+
+:root {
+  /* 基础色 */
+  --bg: #0f0f1e;
+  --bg-deep: #08080f;
+  --radio-shell: #2d2d44;
+  --radio-shell-light: #3d3d5c;
+  --radio-shell-dark: #1f1f33;
+  --lcd-bg: #0a0a14;
+  --lcd-glow: #7ee787;
+  --text-light: #e8e8f0;
+  --text-dim: #8888aa;
+
+  /* 频道主题色（JS 动态切换） */
+  --ch-color: #4ecdc4;
+  --ch-color-dim: rgba(78, 205, 196, 0.3);
+
+  /* 像素 */
+  --pixel: 4px;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  border-radius: 0 !important;
+}
+
+html, body {
+  width: 100%;
+  min-height: 100vh;
+  background: var(--bg);
+  color: var(--text-light);
+  font-family: 'VT323', 'Noto Sans SC', 'Microsoft YaHei', monospace;
+  overflow-x: hidden;
+  image-rendering: pixelated;
+  -webkit-font-smoothing: none;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ===== 背景星空 ===== */
+.starfield {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  background:
+    radial-gradient(ellipse at 30% 20%, rgba(78, 205, 196, 0.08), transparent 50%),
+    radial-gradient(ellipse at 70% 80%, rgba(167, 139, 250, 0.08), transparent 50%),
+    linear-gradient(180deg, #0f0f1e 0%, #08080f 100%);
+}
+
+.star {
+  position: absolute;
+  width: 2px;
+  height: 2px;
+  background: #fff;
+  animation: twinkle 3s infinite;
+}
+
+@keyframes twinkle {
+  0%, 100% { opacity: 0.2; }
+  50% { opacity: 1; }
+}
+
+/* ===== CRT 效果 ===== */
+.crt-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 999;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    0deg,
+    rgba(0, 0, 0, 0.15) 0px,
+    rgba(0, 0, 0, 0.15) 1px,
+    transparent 1px,
+    transparent 3px
+  );
+}
+
+.crt-flicker {
+  position: fixed;
+  inset: 0;
+  z-index: 998;
+  pointer-events: none;
+  background: radial-gradient(ellipse at center, transparent 60%, rgba(0, 0, 0, 0.4) 100%);
+  animation: flicker 0.15s infinite;
+}
+
+@keyframes flicker {
+  0% { opacity: 0.97; }
+  50% { opacity: 1; }
+  100% { opacity: 0.98; }
+}
+
+/* ===== 主容器 ===== */
+.app {
+  position: relative;
+  z-index: 1;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 20px;
+}
+
+/* ===== 开机界面 ===== */
+.boot-screen {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 90vh;
+  gap: 30px;
+}
+
+.boot-radio {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.boot-antena {
+  width: 4px;
+  height: 60px;
+  background: linear-gradient(180deg, var(--radio-shell-light), var(--radio-shell));
+  transform: rotate(-15deg);
+  transform-origin: bottom center;
+  margin-bottom: -4px;
+}
+
+.boot-body {
+  display: flex;
+  gap: 16px;
+  padding: 24px;
+  background: var(--radio-shell);
+  border: 4px solid var(--radio-shell-dark);
+  box-shadow:
+    inset 4px 4px 0 var(--radio-shell-light),
+    inset -4px -4px 0 var(--radio-shell-dark),
+    0 8px 0 rgba(0, 0, 0, 0.5);
+}
+
+.boot-screen-display {
+  width: 280px;
+  padding: 16px;
+  background: var(--lcd-bg);
+  border: 3px solid #000;
+  text-align: center;
+}
+
+.boot-title {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 14px;
+  color: var(--ch-color);
+  margin-bottom: 12px;
+  text-shadow: 0 0 8px var(--ch-color);
+}
+
+.boot-sub {
+  font-size: 22px;
+  color: var(--lcd-glow);
+  margin-bottom: 20px;
+}
+
+.boot-blink {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 10px;
+  color: var(--lcd-glow);
+  animation: blink 1s steps(2) infinite;
+}
+
+@keyframes blink {
+  0%, 50% { opacity: 1; }
+  51%, 100% { opacity: 0; }
+}
+
+.boot-speaker {
+  width: 60px;
+  background:
+    repeating-linear-gradient(0deg, var(--radio-shell-dark) 0 3px, transparent 3px 6px),
+    repeating-linear-gradient(90deg, var(--radio-shell-dark) 0 3px, transparent 3px 6px);
+  background-color: var(--radio-shell-light);
+}
+
+.boot-hint {
+  font-size: 20px;
+  color: var(--text-dim);
+}
+
+/* ===== 像素按钮 ===== */
+.pixel-btn {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 12px;
+  padding: 14px 28px;
+  background: var(--ch-color);
+  color: #0f0f1e;
+  border: 4px solid #000;
+  cursor: pointer;
+  box-shadow:
+    inset 3px 3px 0 rgba(255, 255, 255, 0.4),
+    inset -3px -3px 0 rgba(0, 0, 0, 0.3),
+    0 6px 0 #000;
+  transition: transform 0.05s, box-shadow 0.05s;
+}
+
+.pixel-btn:hover {
+  filter: brightness(1.1);
+}
+
+.pixel-btn:active {
+  transform: translateY(4px);
+  box-shadow:
+    inset 3px 3px 0 rgba(255, 255, 255, 0.4),
+    inset -3px -3px 0 rgba(0, 0, 0, 0.3),
+    0 2px 0 #000;
+}
+
+/* ===== 电台主体 ===== */
+.radio-stage {
+  width: 100%;
+  max-width: 900px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.radio-unit {
+  position: relative;
+  background: var(--radio-shell);
+  border: 4px solid var(--radio-shell-dark);
+  box-shadow:
+    inset 4px 4px 0 var(--radio-shell-light),
+    inset -4px -4px 0 var(--radio-shell-dark),
+    0 10px 0 rgba(0, 0, 0, 0.5);
+  padding: 20px;
+}
+
+/* 天线 */
+.antena {
+  position: absolute;
+  top: -70px;
+  right: 60px;
+  width: 4px;
+  height: 80px;
+  transform: rotate(20deg);
+  transform-origin: bottom center;
+}
+
+.antena-line {
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(180deg, #888, var(--radio-shell-light));
+}
+
+.antena-tip {
+  position: absolute;
+  top: -6px;
+  left: -4px;
+  width: 12px;
+  height: 12px;
+  background: var(--ch-color);
+  border: 2px solid #000;
+}
+
+/* 顶部品牌栏 */
+.radio-topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 16px;
+  border-bottom: 3px solid var(--radio-shell-dark);
+  margin-bottom: 20px;
+}
+
+.brand {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 12px;
+  color: var(--ch-color);
+  text-shadow: 0 0 6px var(--ch-color-dim);
+}
+
+.model {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 8px;
+  color: var(--text-dim);
+}
+
+/* 主体网格 */
+.radio-main {
+  display: grid;
+  grid-template-columns: 1.5fr 1fr;
+  gap: 20px;
+}
+
+/* ===== LCD 屏幕 ===== */
+.lcd-panel {
+  background: #000;
+  padding: 6px;
+  border: 3px solid var(--radio-shell-dark);
+}
+
+.lcd-screen {
+  background: var(--lcd-bg);
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.lcd-top {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.lcd-freq {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 28px;
+  color: var(--ch-color);
+  text-shadow: 0 0 10px var(--ch-color);
+}
+
+.lcd-mhz {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 10px;
+  color: var(--ch-color);
+  opacity: 0.7;
+}
+
+.lcd-channel {
+  font-size: 24px;
+  color: var(--lcd-glow);
+  line-height: 1;
+}
+
+#wave-canvas {
+  width: 100%;
+  height: 60px;
+  background: rgba(0, 0, 0, 0.5);
+  border: 2px solid rgba(126, 231, 135, 0.2);
+}
+
+.lcd-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 8px;
+  color: var(--lcd-glow);
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  background: #ff4444;
+  animation: pulse 1s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+
+/* ===== 控制区 ===== */
+.controls {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* LED 指示灯 */
+.led-row {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.led-btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--radio-shell-dark);
+  border: 2px solid #000;
+  padding: 6px 10px;
+  cursor: pointer;
+  color: var(--text-dim);
+  font-family: 'Press Start 2P', monospace;
+  font-size: 8px;
+}
+
+.led-btn:hover {
+  background: var(--radio-shell-light);
+}
+
+.led {
+  width: 10px;
+  height: 10px;
+  background: #333;
+  border: 2px solid #000;
+}
+
+.led-btn.active .led {
+  background: var(--ch-color);
+  box-shadow: 0 0 8px var(--ch-color);
+}
+
+.led-btn.active {
+  color: var(--ch-color);
+}
+
+.led-label {
+  line-height: 1;
+}
+
+/* 调频旋钮 */
+.tuner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+}
+
+.knob-btn {
+  width: 36px;
+  height: 36px;
+  background: var(--radio-shell-light);
+  border: 3px solid #000;
+  cursor: pointer;
+  color: var(--text-light);
+  font-size: 14px;
+  box-shadow:
+    inset 2px 2px 0 rgba(255, 255, 255, 0.2),
+    inset -2px -2px 0 rgba(0, 0, 0, 0.3);
+}
+
+.knob-btn:active {
+  box-shadow: inset 2px 2px 0 rgba(0, 0, 0, 0.3);
+}
+
+.knob {
+  width: 64px;
+  height: 64px;
+  background: var(--radio-shell-light);
+  border: 4px solid #000;
+  cursor: pointer;
+  position: relative;
+  box-shadow:
+    inset 3px 3px 0 rgba(255, 255, 255, 0.2),
+    inset -3px -3px 0 rgba(0, 0, 0, 0.4);
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.knob-inner {
+  position: absolute;
+  inset: 8px;
+  background: var(--radio-shell);
+  border: 2px solid #000;
+}
+
+.knob-marker {
+  position: absolute;
+  top: 4px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 4px;
+  height: 12px;
+  background: var(--ch-color);
+}
+
+/* 音量 */
+.volume-control {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.vol-icon {
+  font-size: 20px;
+  color: var(--ch-color);
+}
+
+.pixel-slider {
+  flex: 1;
+  -webkit-appearance: none;
+  appearance: none;
+  height: 12px;
+  background: var(--radio-shell-dark);
+  border: 2px solid #000;
+  cursor: pointer;
+}
+
+.pixel-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 20px;
+  background: var(--ch-color);
+  border: 2px solid #000;
+  cursor: pointer;
+}
+
+.pixel-slider::-moz-range-thumb {
+  width: 16px;
+  height: 20px;
+  background: var(--ch-color);
+  border: 2px solid #000;
+  cursor: pointer;
+}
+
+.power-off {
+  font-size: 9px;
+  padding: 10px;
+  background: #ff6b6b;
+}
+
+/* 喇叭网 */
+.radio-speaker {
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 3px solid var(--radio-shell-dark);
+}
+
+.speaker-grid {
+  height: 40px;
+  background:
+    repeating-linear-gradient(0deg, var(--radio-shell-dark) 0 3px, transparent 3px 8px),
+    repeating-linear-gradient(90deg, var(--radio-shell-dark) 0 3px, transparent 3px 8px);
+  background-color: var(--radio-shell-light);
+}
+
+/* ===== 内容面板 ===== */
+.content-panel {
+  background: var(--radio-shell);
+  border: 4px solid var(--radio-shell-dark);
+  box-shadow:
+    inset 4px 4px 0 var(--radio-shell-light),
+    inset -4px -4px 0 var(--radio-shell-dark),
+    0 10px 0 rgba(0, 0, 0, 0.5);
+  padding: 24px;
+}
+
+.content-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding-bottom: 16px;
+  border-bottom: 3px solid var(--radio-shell-dark);
+  margin-bottom: 20px;
+}
+
+.content-freq {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 12px;
+  color: var(--ch-color);
+  padding: 6px 10px;
+  background: #000;
+  border: 2px solid var(--ch-color);
+}
+
+.content-title {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 11px;
+  color: var(--text-light);
+}
+
+.content-body {
+  font-size: 20px;
+  line-height: 1.6;
+  color: var(--text-light);
+}
+
+.content-body h3 {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 11px;
+  color: var(--ch-color);
+  margin: 24px 0 12px;
+  text-shadow: 0 0 6px var(--ch-color-dim);
+}
+
+.content-body h3:first-child {
+  margin-top: 0;
+}
+
+.content-body p {
+  margin-bottom: 12px;
+}
+
+.content-body ul, .content-body ol {
+  margin: 0 0 16px 24px;
+}
+
+.content-body li {
+  margin-bottom: 6px;
+}
+
+.content-body .tag {
+  display: inline-block;
+  padding: 4px 10px;
+  margin: 2px 4px 2px 0;
+  background: var(--ch-color-dim);
+  border: 2px solid var(--ch-color);
+  color: var(--ch-color);
+  font-size: 16px;
+}
+
+.content-body .card {
+  background: rgba(0, 0, 0, 0.3);
+  border: 2px solid var(--ch-color-dim);
+  padding: 16px;
+  margin-bottom: 16px;
+}
+
+.content-body .card-title {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 9px;
+  color: var(--ch-color);
+  margin-bottom: 8px;
+}
+
+.content-body table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 16px;
+  font-size: 18px;
+}
+
+.content-body th, .content-body td {
+  border: 2px solid var(--ch-color-dim);
+  padding: 8px 12px;
+  text-align: left;
+}
+
+.content-body th {
+  background: var(--ch-color-dim);
+  color: var(--ch-color);
+  font-family: 'Press Start 2P', monospace;
+  font-size: 8px;
+}
+
+.content-body a {
+  color: var(--ch-color);
+  text-decoration: underline;
+}
+
+.content-body .highlight {
+  color: var(--ch-color);
+}
+
+/* ===== 响应式 ===== */
+@media (max-width: 700px) {
+  .radio-main {
+    grid-template-columns: 1fr;
+  }
+
+  .boot-body {
+    flex-direction: column;
+  }
+
+  .boot-speaker {
+    width: 100%;
+    height: 40px;
+  }
+
+  .content-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .content-title {
+    font-size: 9px;
+  }
+
+  .lcd-freq {
+    font-size: 22px;
+  }
+}
+
+/* ===== 减少动画 ===== */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
