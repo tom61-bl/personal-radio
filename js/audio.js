@@ -14,56 +14,64 @@ const AudioSystem = {
   ready: false,
   musicLoaded: false,
 
-  // 初始化
+  // 初始化（完全不阻塞：任何一步失败都不影响 UI 继续）
   async init() {
-    // Tone.start 需要真实用户手势；用超时兜底，避免非手势环境下永久挂起
+    // 1. 尝试恢复音频上下文（需要真实手势；超时兜底）
     try {
       await Promise.race([
         Tone.start(),
-        new Promise((_, reject) => setTimeout(() => reject(new Error("timeout")), 2000))
+        new Promise((resolve) => setTimeout(resolve, 1500))
       ]);
     } catch (e) {
-      console.log("Tone.start 未在手势中完成，延迟到首次交互恢复");
+      console.log("音频上下文恢复延迟");
     }
-    Tone.Transport.start();
+    try { Tone.Transport.start(); } catch (e) {}
 
-    // 主音量
-    Tone.Destination.volume.value = Tone.gainToDb(this.volume);
+    // 2. 主音量
+    try {
+      Tone.Destination.volume.value = Tone.gainToDb(this.volume);
+    } catch (e) {}
 
-    // 分析器（用于波形）
-    this.analyser = new Tone.Analyser("waveform", 128);
-    Tone.Destination.connect(this.analyser);
+    // 3. 分析器（用于波形）
+    try {
+      this.analyser = new Tone.Analyser("waveform", 128);
+      Tone.Destination.connect(this.analyser);
+    } catch (e) {}
 
-    // 创建音乐播放器（容错：文件不存在时不报错）
-    this.players = new Tone.Players({
-      urls: {
-        0: "audio/ch1-identity.ogg",
-        1: "audio/ch2-now.ogg",
-        2: "audio/ch3-future.ogg",
-        3: "audio/ch4-contact.ogg",
-        4: "audio/ch5-works.ogg"
-      },
-      onload: () => {
-        this.musicLoaded = true;
-        console.log("音乐加载完成");
-      },
-      fadeIn: 0.5,
-      fadeOut: 0.5
-    }).toDestination();
+    // 4. 音乐播放器（异步加载，不阻塞；包一层超时）
+    try {
+      this.players = new Tone.Players({
+        urls: {
+          0: "audio/ch1-identity.ogg",
+          1: "audio/ch2-now.ogg",
+          2: "audio/ch3-future.ogg",
+          3: "audio/ch4-contact.ogg",
+          4: "audio/ch5-works.ogg"
+        },
+        onload: () => {
+          this.musicLoaded = true;
+          console.log("音乐加载完成");
+        },
+        fadeIn: 0.5,
+        fadeOut: 0.5
+      }).toDestination();
+    } catch (e) {
+      console.log("播放器创建失败:", e);
+    }
 
-    // 准备调频杂音
-    this.setupNoise();
+    // 5. 调频杂音
+    try { this.setupNoise(); } catch (e) { console.log("杂音初始化失败:", e); }
 
     this.ready = true;
 
-    // 首次真实交互时恢复音频上下文（兜底自动播放策略）
+    // 6. 首次真实交互时恢复音频上下文（兜底自动播放策略）
     const resume = () => {
-      if (Tone.context.state !== "running") {
-        Tone.context.resume();
-      }
+      try {
+        if (Tone.context.state !== "running") Tone.context.resume();
+      } catch (e) {}
     };
     ["click", "keydown", "touchstart"].forEach((evt) => {
-      document.addEventListener(evt, resume, { once: false, passive: true });
+      document.addEventListener(evt, resume, { passive: true });
     });
   },
 
