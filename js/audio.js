@@ -36,11 +36,11 @@ const AudioSystem = {
   async init() {
     // 创建 5 个音乐轨道
     const files = [
-      "audio/ch1-identity.ogg",
-      "audio/ch2-now.ogg",
-      "audio/ch3-future.ogg",
-      "audio/ch4-contact.ogg",
-      "audio/ch5-works.ogg"
+      "audio/ch1-identity.mp3",
+      "audio/ch2-now.mp3",
+      "audio/ch3-future.mp3",
+      "audio/ch4-contact.mp3",
+      "audio/ch5-works.mp3"
     ];
     files.forEach((src, i) => {
       const a = new Audio(src);

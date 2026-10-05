@@ -9,10 +9,10 @@ const CHANNELS = [
     freq: "88.1",
     name: "身份台",
     title: "身份台 · 我是谁",
-    style: "8-bit Chiptune",
+    style: "Lounge Jazz",
     color: "#4ecdc4",
     colorDim: "rgba(78, 205, 196, 0.3)",
-    music: "audio/ch1-identity.ogg",
+    music: "audio/ch1-identity.mp3",
     content: `
       <h3>一句话定位</h3>
       <p class="highlight">【护理学生 × 创作者商务 × 内容创作者，在杭州独居的 21 岁男生】</p>
@@ -52,10 +52,10 @@ const CHANNELS = [
     freq: "92.5",
     name: "现在进行台",
     title: "现在进行台 · 我在做什么",
-    style: "Jazz",
+    style: "Bossa Nova",
     color: "#ffd93d",
     colorDim: "rgba(255, 217, 61, 0.3)",
-    music: "audio/ch2-now.ogg",
+    music: "audio/ch2-now.mp3",
     content: `
       <h3>当前运行的进程</h3>
 
@@ -109,10 +109,10 @@ const CHANNELS = [
     freq: "96.8",
     name: "未来台",
     title: "未来台 · 我想做什么",
-    style: "Classical / Piano",
+    style: "Piano Solo",
     color: "#a78bfa",
     colorDim: "rgba(167, 139, 250, 0.3)",
-    music: "audio/ch3-future.ogg",
+    music: "audio/ch3-future.mp3",
     content: `
       <h3>短期目标（3-6 个月）</h3>
       <ol>
@@ -146,10 +146,10 @@ const CHANNELS = [
     freq: "101.3",
     name: "联络台",
     title: "联络台 · 怎么样和我链接",
-    style: "Lyrical / Ballad",
+    style: "Ukulele Pop",
     color: "#ff9f43",
     colorDim: "rgba(255, 159, 67, 0.3)",
-    music: "audio/ch4-contact.ogg",
+    music: "audio/ch4-contact.mp3",
     content: `
       <h3>联系方式</h3>
       <ul>
@@ -206,10 +206,10 @@ const CHANNELS = [
     freq: "105.7",
     name: "成果台",
     title: "成果台 · 我的成果",
-    style: "8-bit Triumphant",
+    style: "8-bit Electronic",
     color: "#ff6b6b",
     colorDim: "rgba(255, 107, 107, 0.3)",
-    music: "audio/ch5-works.ogg",
+    music: "audio/ch5-works.mp3",
     content: `
       <h3>专业成果（护理方向）</h3>
       <ol>
